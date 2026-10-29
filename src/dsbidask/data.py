@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from .config import S0_BID, S0_ASK
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(__file__).resolve().parent / "datasets"
 
 
 @dataclass
@@ -25,9 +25,10 @@ def load_side(path, add_stock: bool = False, s0=(S0_BID, S0_ASK)):
     return K, b, a
 
 
-def load_quotes(calls=None, puts=None, add_stock=True) -> Quotes:
+def load_quotes(calls=None, puts=None, add_stock=True, spot=(S0_BID, S0_ASK)) -> Quotes:
+    """Load quotes; ``spot`` is the underlying (bid, ask), inserted as a strike-0 call when ``add_stock``."""
     calls = calls or DATA_DIR / "META_calls_2023-10-27_s_1_0_LOWER.csv"
     puts = puts or DATA_DIR / "META_puts_2023-10-27_s_1_0_LOWER.csv"
-    Kc, Cb, Ca = load_side(calls, add_stock)
+    Kc, Cb, Ca = load_side(calls, add_stock, spot)
     Kp, Pb, Pa = load_side(puts)
-    return Quotes(Kc, Cb, Ca, Kp, Pb, Pa)
+    return Quotes(Kc, Cb, Ca, Kp, Pb, Pa, spot[0], spot[1])

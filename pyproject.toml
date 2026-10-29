@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dsbidask"
+version = "0.2.0"
+description = "Bid-ask option pricing under Dempster-Shafer uncertainty (binomial DS multiplicative random walk)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy", "scipy", "pandas", "matplotlib", "pyswarm"]
+
+[project.optional-dependencies]
+fetch = ["yfinance", "requests"]
+notebook = ["jupyter", "nbformat", "nbconvert"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dsbidask = ["datasets/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

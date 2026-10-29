@@ -1,7 +1,6 @@
 """Run PSO calibration: python scripts/calibrate.py [--fixed-d] [--maxiter N]"""
 import argparse, json, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from dsbidask.data import load_quotes
 from dsbidask.calibration import calibrate
 

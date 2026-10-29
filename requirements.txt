@@ -1,7 +1,6 @@
+# Install the package itself with:  pip install -e ".[dev,fetch,notebook]"
 numpy
 scipy
 pandas
 matplotlib
 pyswarm
-pytest
-yfinance

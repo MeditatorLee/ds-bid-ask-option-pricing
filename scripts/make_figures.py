@@ -4,11 +4,13 @@ from pathlib import Path
 import matplotlib; matplotlib.use("Agg")
 import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
 from dsbidask import *
 from dsbidask.data import load_quotes
 from dsbidask.theory import spread_vs_epsilon
 from dsbidask.pricing import european_tree
+from dsbidask.theory import put_spread_vs_strike
+from dsbidask.choquet import bid_ask_trees, early_exercise_nodes
+from dsbidask.replication import replicating_portfolio
 from dsbidask import plotting as P
 
 OUT = ROOT / "figures"; OUT.mkdir(exist_ok=True)
@@ -31,4 +33,29 @@ S, bid, ask = european_tree(lambda s: np.maximum(s - 100, 0), 100, 1.2, 0.8, 0.4
 P.plot_tree(S, "Stock tree", OUT / "tree_stock.png")
 P.plot_tree(bid, "European call: bid tree", OUT / "tree_call_bid.png")
 P.plot_tree(ask, "European call: ask tree", OUT / "tree_call_ask.png")
+# Fig. 7 analogue: calibrated put spread vs strike, European vs American (S0 = 300.11)
+Ks = np.arange(200, 400.25, 0.25)
+sp = {}
+for am in (False, True):
+    _, _, s_ = put_spread_vs_strike(S0_BID, Ks, params["u"], params["d"], params["b_d"], R_DEFAULT, T_DEFAULT, american=am)
+    sp["American" if am else "European"] = s_
+P.plot_put_spreads_vs_strike(Ks, sp, path=OUT / "put_spread_vs_strike.png")
+
+# Corrected thesis Fig. 3: straddle trees by backward recursion (S0=K=100, T=5, u=1.2, d=0.8, r=0.04)
+kw = dict(S0=100, u=1.2, d=0.8, b_d=0.4 * 0.999, R=1.04, T=5)
+S, sb, sa = bid_ask_trees(lambda s: np.abs(s - 100), **kw)
+P.plot_tree(sb, "Straddle: bid tree (recursion)", OUT / "tree_straddle_bid.png")
+P.plot_tree(sa, "Straddle: ask tree (recursion)", OUT / "tree_straddle_ask.png")
+
+# American put early-exercise nodes (K=350 on the META tree)
+pay = lambda s: np.maximum(350 - s, 0.0)
+St, ab, aa = bid_ask_trees(pay, S0_BID, params["u"], params["d"], params["b_d"], R_DEFAULT, 8, american=True)
+fb, fa = early_exercise_nodes(pay, S0_BID, params["u"], params["d"], params["b_d"], R_DEFAULT, 8)
+P.plot_tree(ab, "American put bid (red = exercise), K=350, T=8", OUT / "tree_american_put_bid.png", highlight=fb)
+
+# Replication (Prop. 4.4): call bid strategy is self-financing, call ask is not
+S, cb, ca = bid_ask_trees(lambda s: np.maximum(s - 100, 0.0), **kw)
+for lab, V in (("bid", cb), ("ask", ca)):
+    l0, l1, res = replicating_portfolio(S, V, kw["R"])
+    P.plot_replication(S, V, l0, l1, res, f"Call {lab}", OUT / f"replication_call_{lab}.png")
 print("figures written to", OUT)

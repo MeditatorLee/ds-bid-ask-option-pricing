@@ -54,8 +54,12 @@ def plot_calibration_fit(q, params, R, T, path=None):
     return _finish(fig, path)
 
 
-def plot_tree(values, title="", path=None, fmt="{:.2f}", ax=None, annotate=True):
-    """Draw a recombining binomial tree. values[n, j] = value after n periods with j up-moves."""
+def plot_tree(values, title="", path=None, fmt="{:.2f}", ax=None, annotate=True, highlight=None):
+    """Draw a recombining binomial tree. values[n, j] = value after n periods with j up-moves.
+
+    ``highlight``: optional boolean array like ``values``; True nodes are drawn in red
+    (used to mark early-exercise nodes).
+    """
     T = values.shape[0] - 1
     fig = None
     if ax is None:
@@ -66,11 +70,30 @@ def plot_tree(values, title="", path=None, fmt="{:.2f}", ax=None, annotate=True)
             if n < T:
                 for dj in (0, 1):
                     ax.plot([x, x + 1], [y, 2 * (j + dj) - (n + 1)], "-", color="lightskyblue", lw=1, zorder=1)
-            ax.plot(x, y, "o", color="lightskyblue", zorder=2)
-            if annotate:
+            hl = highlight is not None and bool(highlight[n, j])
+            ax.plot(x, y, "o", color=ASK if hl else "lightskyblue", zorder=2)
+            if annotate and not np.isnan(values[n, j]):
                 ax.annotate(fmt.format(values[n, j]), (x, y), textcoords="offset points",
                             xytext=(0, 8), ha="center", fontsize=9)
     ax.set_xticks(range(T + 1)); ax.set_xlabel("Period")
     ax.set_yticks([]); ax.set_title(title)
     for s in ("left", "right", "top"): ax.spines[s].set_visible(False)
     return _finish(fig, path) if fig else None
+
+
+def plot_put_spreads_vs_strike(strikes, spreads, title="Calibrated put bid-ask spread", path=None):
+    """spreads: dict {label: spread array} over ``strikes``."""
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for c, (lab, sp) in zip(LINES, spreads.items()):
+        ax.plot(strikes, sp, color=c, label=lab)
+    ax.set(xlabel="Strike $K$", ylabel="Ask - bid", title=title); ax.legend()
+    return _finish(fig, path)
+
+
+def plot_replication(stock, value, lam0, lam1, residual, title, path=None):
+    """Three trees: value, stock holding lambda1 and self-financing residual."""
+    fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+    plot_tree(value, f"{title}: value", ax=axes[0], fmt="{:.1f}")
+    plot_tree(np.where(np.isnan(lam1), np.nan, lam1), f"{title}: stock holding", ax=axes[1], fmt="{:.2f}")
+    plot_tree(residual, f"{title}: self-financing residual", ax=axes[2], fmt="{:.2f}")
+    return _finish(fig, path)

@@ -1,8 +1,8 @@
-import sys
-from pathlib import Path
+
+
 import numpy as np
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from dsbidask import *
+from dsbidask.pricing import european_tree
 from dsbidask.data import load_quotes
 from dsbidask.calibration import sse
 
