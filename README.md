@@ -1,5 +1,7 @@
 # DS Bid-Ask Option Pricing
 
+**English** | [简体中文](README.zh-CN.md)
+
 Dynamic **bid-ask option pricing under Dempster-Shafer (DS) uncertainty** with a binomial DS
 multiplicative random walk, calibrated to META option quotes (quote date 2023-09-29, expiry 2023-10-27,
 T = 20 trading days) with Particle Swarm Optimisation.
@@ -48,6 +50,7 @@ Regenerate figures: `python scripts/make_figures.py`.
 | `src/dsbidask/fetch.py`, `scripts/fetch_quotes.py` | **free** live-data download (see below; not run here) |
 | `src/dsbidask/plotting.py` | all plots, English labels only |
 | `docs/THESIS_ERRATA.md` | audit of the thesis: data files, code, headers/captions |
+| `README.zh-CN.md` | Chinese README (same content, with thesis section references) |
 | `tests/` | 13 tests (closed form vs recursion, CRR limit, replication, thesis numbers) |
 
 ## Results (reproduced)
