@@ -31,3 +31,18 @@ def test_american_put_geq_european():
         ab, aa = american_put_bid_ask(300, K, U, D, BD, R_DEFAULT, 20)
         eb, ea = european_put_bid_ask(300, K, U, D, BD, R_DEFAULT, 20)
         assert ab >= eb - 1e-12 and aa >= ea - 1e-12 and ab <= aa
+
+
+def test_european_tree_root_matches_closed_form():
+    from dsbidask.pricing import european_tree
+    S, bid, ask = european_tree(lambda s: np.maximum(s - 100, 0), 100, 1.2, 0.8, 0.399, 1.04, 5, "increasing")
+    b, a = european_call_bid_ask(100, 100, 1.2, 0.8, 0.399, 1.04, 5)
+    assert abs(bid[0, 0] - b) < 1e-12 and abs(ask[0, 0] - a) < 1e-12
+    m = ~np.isnan(bid)
+    assert np.all(bid[m] <= ask[m] + 1e-12)
+
+
+def test_spread_vanishes_at_epsilon_one():
+    from dsbidask.theory import spread_vs_epsilon
+    e, s = spread_vs_epsilon("call", 100, 100, 1.05, 0.95, 1.01, 10, eps=[0.0, 0.5, 1.0])
+    assert s[0] > s[1] > 0 and abs(s[2]) < 1e-10

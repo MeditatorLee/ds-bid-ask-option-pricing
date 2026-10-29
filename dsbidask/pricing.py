@@ -66,3 +66,20 @@ def american_put_bid_ask(S0, K, u, d, b_d, R, T, return_trees: bool = False):
             tree.append(V.copy()); flag.append(ex > cont)
         out.append(float(V[0])); trees.append(tree[::-1]); flags.append(flag[::-1])
     return (out[0], out[1], trees, flags) if return_trees else (out[0], out[1])
+
+
+def european_tree(payoff, S0, u, d, b_d, R, T, monotone: str):
+    """Node-wise bid/ask value trees of a European claim with monotone payoff.
+
+    Returns (stock, bid, ask), each of shape (T+1, T+1); entry [n, j] is the node after
+    n periods with j up-moves (entries with j > n are NaN). At every node the value is the
+    bid/ask of the claim with the remaining T-n periods, started from that node's stock price.
+    """
+    stock = np.full((T + 1, T + 1), np.nan)
+    bid, ask = stock.copy(), stock.copy()
+    for n in range(T + 1):
+        for j in range(n + 1):
+            s = S0 * u**j * d ** (n - j)
+            stock[n, j] = s
+            bid[n, j], ask[n, j] = european_bid_ask(payoff, s, u, d, b_d, R, T - n, monotone)
+    return stock, bid, ask

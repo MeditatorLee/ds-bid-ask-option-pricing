@@ -18,9 +18,11 @@ bid, ask = european_call_bid_ask(S0=300.11, K=300, u=1.0235, d=0.9643, b_d=0.392
 ```
 
 ## Layout
-- `dsbidask/` – `pricing.py` (European bid/ask, American put trees, CRR), `data.py`, `calibration.py`, `config.py`
+- `dsbidask/` – `pricing.py` (European bid/ask, node-wise trees, American put, CRR), `theory.py` (spread vs ε), `data.py`, `calibration.py` (PSO), `plotting.py`, `config.py`
+- `notebooks/demo.ipynb` – step-by-step demo (outputs stripped; rebuild with `scripts/build_demo_notebook.py`)
+- `scripts/` – `calibrate.py`, `make_figures.py` (regenerates `figures/`)
 - `data/` – Yahoo Finance option chains (`*_s_1_0_LOWER.csv` are the filtered sets used for calibration)
-- `scripts/`, `tests/`
+- `tests/` – pytest suite
 
 ## Reference result (free d, seed 12345)
 u = 1.02354592, d = 0.96425885, b_d = 0.39260853, b_u ≈ 0.60649, SSE ≈ 15.44 (reproduced by the tests).
