@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 import matplotlib; matplotlib.use("Agg")
+import argparse
 import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 from dsbidask import *
@@ -13,6 +14,10 @@ from dsbidask.choquet import bid_ask_trees, early_exercise_nodes
 from dsbidask.replication import replicating_portfolio
 from dsbidask import plotting as P
 
+ap = argparse.ArgumentParser()
+ap.add_argument("--dpi", type=int, default=150, help="figure resolution (default 150; thesis-quality: 300)")
+args = ap.parse_args()
+P.DPI = args.dpi
 OUT = ROOT / "figures"; OUT.mkdir(exist_ok=True)
 q = load_quotes()
 P.plot_market_quotes(q.K_call, q.C_bid, q.C_ask, "META calls", OUT / "market_calls.png")
@@ -58,4 +63,14 @@ S, cb, ca = bid_ask_trees(lambda s: np.maximum(s - 100, 0.0), **kw)
 for lab, V in (("bid", cb), ("ask", ca)):
     l0, l1, res = replicating_portfolio(S, V, kw["R"])
     P.plot_replication(S, V, l0, l1, res, f"Call {lab}", OUT / f"replication_call_{lab}.png")
+# Calibration robustness figures (from results/*.csv produced by the experiments; skipped if absent)
+import pandas as pd
+RES = ROOT / "results"
+tabs = {n: pd.read_csv(RES / f"multistart_{k}.csv") for n, k in
+        (("free d, thesis bounds", "free_d_thesis_bounds"), ("free d, wide bounds", "free_d_wide_bounds"),
+         ("d = 1/u", "fixed_d_thesis_bounds")) if (RES / f"multistart_{k}.csv").exists()}
+if tabs:
+    P.plot_multistart_errors(tabs, thesis_value=15.4418, path=OUT / "multistart_errors.png")
+if (RES / "objective_comparison.csv").exists():
+    P.plot_objective_tradeoff(pd.read_csv(RES / "objective_comparison.csv"), path=OUT / "objective_tradeoff.png")
 print("figures written to", OUT)

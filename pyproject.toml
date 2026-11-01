@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dsbidask"
-version = "0.2.0"
+version = "0.3.0"
 description = "Bid-ask option pricing under Dempster-Shafer uncertainty (binomial DS multiplicative random walk)"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["numpy", "scipy", "pandas", "matplotlib", "pyswarm"]
 
 [project.optional-dependencies]

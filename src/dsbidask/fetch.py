@@ -12,6 +12,8 @@ Sources
 """
 from __future__ import annotations
 from pathlib import Path
+from typing import Optional, Tuple, Union
+
 import pandas as pd
 
 KEEP = ["contractSymbol", "lastTradeDate", "strike", "lastPrice", "bid", "ask", "change",
@@ -19,7 +21,7 @@ KEEP = ["contractSymbol", "lastTradeDate", "strike", "lastPrice", "bid", "ask", 
         "contractSize", "currency"]
 
 
-def fetch_yahoo_chain(ticker: str, expiry: str):
+def fetch_yahoo_chain(ticker: str, expiry: str) -> Tuple[pd.DataFrame, pd.DataFrame, Optional[float], Optional[float]]:
     """Return ``(calls, puts, spot_bid, spot_ask)`` for one expiry (YYYY-MM-DD) from Yahoo Finance."""
     import yfinance as yf
     t = yf.Ticker(ticker)
@@ -28,7 +30,7 @@ def fetch_yahoo_chain(ticker: str, expiry: str):
     return (chain.calls[KEEP], chain.puts[KEEP], info.get("bid"), info.get("ask"))
 
 
-def fetch_cboe_chain(ticker: str):
+def fetch_cboe_chain(ticker: str) -> pd.DataFrame:
     """UNTESTED fallback: Cboe delayed-quotes JSON. Returns a DataFrame with an OCC ``option`` column."""
     import requests
     url = f"https://cdn.cboe.com/api/global/delayed_quotes/options/{ticker.upper()}.json"
@@ -50,7 +52,7 @@ def liquid_subset(df: pd.DataFrame, max_spread: float = 1.0) -> pd.DataFrame:
     return df[(df["ask"] - df["bid"]) <= max_spread].copy()
 
 
-def save_snapshot(calls, puts, outdir, ticker, expiry):
+def save_snapshot(calls: pd.DataFrame, puts: pd.DataFrame, outdir: Union[str, Path], ticker: str, expiry: str) -> None:
     outdir = Path(outdir); outdir.mkdir(parents=True, exist_ok=True)
     calls.to_csv(outdir / f"{ticker}_calls_{expiry}.csv", index=False)
     puts.to_csv(outdir / f"{ticker}_puts_{expiry}.csv", index=False)

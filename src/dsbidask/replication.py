@@ -1,21 +1,27 @@
-"""Replicating portfolios for the bid/ask price processes (thesis Section 4.2, Prop. 4.4).
+"""Replicating portfolios for the bid/ask price processes (thesis Section 4.2, eqs. 26-29, Prop. 4.4).
 
-For every node (n, j) we solve, with bond B_n = R^n and the two successor nodes u/d,
+For every node ``(n, j)`` we solve, with bond ``B_n = R^n`` and the up/down successor nodes,
 
-    lambda0 * B_{n+1} + lambda1 * S_{n+1} = Y_{n+1}      (eq. 26, bid; eq. 27 for the ask)
+    lambda0 * B_{n+1} + lambda1 * S_{n+1} = Y_{n+1}      (eq. 26; eq. 27 for the ask)
 
-and report the self-financing residual ``Y_n - (lambda0 * B_n + lambda1 * S_n)``.
-Prop. 4.4: the bid strategy is self-financing (residual 0) iff lambda1 >= 0 (non-decreasing payoff);
-the ask strategy iff delta1 <= 0 (non-increasing payoff).
+and report the self-financing residual ``Y_n - (lambda0 * B_n + lambda1 * S_n)`` (eqs. 28-29).
+Prop. 4.4: the bid strategy is self-financing (residual 0) iff ``lambda1 >= 0`` (non-decreasing
+payoff); the ask strategy iff ``delta1 <= 0`` (non-increasing payoff).
 """
 from __future__ import annotations
+
+from typing import Tuple
+
 import numpy as np
+from numpy.typing import NDArray
+
+Tree = NDArray[np.float64]
 
 
-def replicating_portfolio(stock, value, R):
+def replicating_portfolio(stock: Tree, value: Tree, R: float) -> Tuple[Tree, Tree, Tree]:
     """Replicating (bond, stock) holdings and self-financing residual for a value tree.
 
-    ``stock`` and ``value`` have shape (T+1, T+1) with ``[n, j]`` = n periods, j up-moves.
+    ``stock`` and ``value`` have shape ``(T+1, T+1)`` with ``[n, j]`` = n periods, j up-moves.
     Returns ``(lam0, lam1, residual)`` of the same shape (NaN at the terminal layer).
     """
     T = stock.shape[0] - 1
@@ -31,5 +37,6 @@ def replicating_portfolio(stock, value, R):
     return lam0, lam1, res
 
 
-def is_self_financing(residual, tol=1e-9) -> bool:
+def is_self_financing(residual: Tree, tol: float = 1e-9) -> bool:
+    """True if the self-financing residual vanishes everywhere (eqs. 28-29 hold with equality)."""
     return bool(np.nanmax(np.abs(residual)) < tol)
