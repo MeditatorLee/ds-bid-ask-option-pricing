@@ -107,11 +107,16 @@ print(american_put_bid_ask(300.11, 350, u, d, b_d, R_DEFAULT, 20))     # 美式�
 3. **置信区间**：对报价做自助法得到参数不确定性（多起点的离散程度只是初步信号）。
 4. **边界**：论证或取消起作用的 `b_d ≥ 0.3` 边界。
 5. **连续时间**：将参数映射到 DS 几何布朗运动极限（论文展望）。
-6. **发布**：在 GitHub 上验证 CI，确定许可证后打标签发布。
+6. **发布**：在 GitHub 上确认 CI（`tests` 工作流尚未核对）通过后打标签发布。
 
 ## 致谢与许可证
 
-基于 Cinfrignini、Petturiti 与 Vantaggi 的论文 *Market consistent bid-ask option pricing under
-Dempster-Shafer uncertainty*（Quantitative Finance，2024，doi:10.1080/14697688.2024.2353318）及其作者的原始代码；
-本仓库配套作者对该模型进行扩展的学位论文。
-**许可证：待项目完成后决定**（需先确认原始代码的许可证）。
+以 **MIT 许可证**发布（见 [`LICENSE`](LICENSE)）：Copyright (c) 2024 Davide Petturiti（原始代码）、
+Copyright (c) 2026 MeditatorLee（本衍生作品）。
+
+本项目基于 [itsdavide/bid-ask-DS](https://github.com/itsdavide/bid-ask-DS)（MIT）的代码，该代码配套
+A. Cinfrignini、D. Petturiti 与 B. Vantaggi 的论文 *Market consistent bid-ask option pricing under
+Dempster-Shafer uncertainty*（Quantitative Finance，2024，doi:10.1080/14697688.2024.2353318）。
+本仓库配套作者对该模型进行扩展的学位论文；`tests/test_american.py` 中的美式看跌递推是对原作者 `AmericanPut.py` 的移植，用作参照。
+
+数据：仓库内的期权报价是 2023-09-29 的 Yahoo Finance 快照，仅用于复现论文结果；在此目的之外再分发市场数据前，请先查阅 Yahoo 的使用条款。

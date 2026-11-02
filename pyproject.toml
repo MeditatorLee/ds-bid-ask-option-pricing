@@ -8,6 +8,12 @@ version = "0.3.0"
 description = "Bid-ask option pricing under Dempster-Shafer uncertainty (binomial DS multiplicative random walk)"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
 dependencies = ["numpy", "scipy", "pandas", "matplotlib", "pyswarm"]
 
 [project.optional-dependencies]

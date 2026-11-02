@@ -121,11 +121,18 @@ extension, CI workflow, type hints and thesis-cited docstrings, 150-dpi figures 
 3. **Confidence intervals:** bootstrap the quotes to get parameter uncertainty (the multi-start spread is only a first signal).
 4. **Bounds:** justify or drop the `b_d >= 0.3` bound, which is active.
 5. **Continuous time:** map the parameters to a DS geometric Brownian motion limit (thesis outlook).
-6. **Releases:** verify the CI on GitHub and tag a release once the licence is chosen.
+6. **Releases:** verify the CI on GitHub (the `tests` workflow has not been checked yet) and tag a release.
 
 ## Credits and licence
 
-Based on Cinfrignini, Petturiti and Vantaggi, *Market consistent bid-ask option pricing under
-Dempster-Shafer uncertainty*, Quantitative Finance (2024), doi:10.1080/14697688.2024.2353318, and the
-authors' original code; accompanies the author's thesis extending that model.
-**Licence: to be decided once the project is finished** (check the original code's licence first).
+Released under the **MIT License** (see [`LICENSE`](LICENSE)): Copyright (c) 2024 Davide Petturiti
+(original code) and Copyright (c) 2026 MeditatorLee (this derived work).
+
+This project derives from the code of [itsdavide/bid-ask-DS](https://github.com/itsdavide/bid-ask-DS)
+(MIT) accompanying A. Cinfrignini, D. Petturiti and B. Vantaggi, *Market consistent bid-ask option pricing
+under Dempster-Shafer uncertainty*, Quantitative Finance (2024), doi:10.1080/14697688.2024.2353318. It
+accompanies the author's thesis extending that model; the American-put recursion in
+`tests/test_american.py` is a port of the original `AmericanPut.py` used as a reference.
+
+Data: the bundled option quotes are a Yahoo Finance snapshot (2023-09-29) kept for reproducibility of the
+thesis results; check Yahoo's terms before redistributing market data beyond that purpose.
