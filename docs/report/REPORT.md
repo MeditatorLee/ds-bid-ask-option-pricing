@@ -176,26 +176,26 @@ so $\nu$ and $\overline{\nu}$ are a lower and an upper probability.
 Conditioning in Dempster–Shafer theory is still an open question. We use the *multiplicative (geometric) conditioning rule*
 of Suppes and Zanotti [19]: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
-$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)}. \tag{1} $$
+$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)} \tag{1}$$
 
 The conditional belief function again induces a conditional core, $\mathrm{core}(\nu(\cdot\mid H))$. Two other common choices
 are Dempster's rule and the Bayesian rule: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
 $$\nu_D(E\mid H)=1-\frac{\overline{\nu}(E^{c}\cap H)}{\overline{\nu}(H)}=\frac{\nu\big((E\cap H)\cup H^{c}\big)-\nu(H^{c})}{1-\nu(H^{c})},$$
 
-$$\nu_B(E\mid H)=\min\Big{\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big}=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
+$$\nu_B(E\mid H)=\min\Big(\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big)=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
 
 Given $\nu(\cdot\mid H)$ and $X\in\mathbb{R}^{\Omega}$, the *conditional Choquet expectation* of $X$ with respect to
 $\nu(\cdot\mid H)$ is defined through the Choquet integral of Choquet [22],
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big), \tag{2} $$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big) \tag{2}$$
 
 where $\sigma$ is a permutation of $\Omega$ with $X(\omega_{\sigma(1)})\ge\dots\ge X(\omega_{\sigma(d)})$,
 $E_i^{\sigma}=\{\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\}$ for $i=1,\dots,d$, and $X(\omega_{\sigma(d+1)})=0$.
 Moreover, through the conditional core, the conditional Choquet expectation can be regarded as a *local lower expectation*
 given $H$, because
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega). \tag{3} $$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega) \tag{3}$$
 
 Furthermore, for the dual plausibility function $\overline{\nu}(\cdot\mid H)$ of $\nu(\cdot\mid H)$,
 
@@ -216,12 +216,12 @@ Consider a discrete-time portfolio in a mixed market with one default-free bond 
 non-dividend-paying stock in a frictional market (transaction costs or information asymmetry). The bond price follows a
 deterministic process $\{B_n\}_{n=0}^{T}$ with $B_0=1$ and, for $n=1,\dots,T$,
 
-$$B_n=(1+r)B_{n-1}, \tag{4} $$
+$$B_n=(1+r)B_{n-1} \tag{4}$$
 
 where $1+r>0$ and $r$ is the one-period risk-free rate over the holding period. The stock *bid* price follows a stochastic
 process $\{S_n\}_{n=0}^{T}$ such that, for $n=1,\dots,T$,
 
-$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases} \tag{5} $$
+$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases} \tag{5}$$
 
 with $S_0=s_0>0$ and $u>d>0$ the up and down factors.
 
@@ -238,7 +238,7 @@ Uncertainty is measured by a belief function $\nu:\mathcal{F}\to[0,1]$ chosen so
 family $\{\beta_t\}_{t=1}^{T}$ determined by only two parameters $b_u,b_d\in(0,1)$ with $b_u+b_d\le 1$, interpreted as the
 one-step conditional beliefs in an up and a down move. For $t=1,\dots,T$ and $A\in\mathcal{P}(\mathcal{A}_t)$,
 
-$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big), \tag{6} $$
+$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big) \tag{6}$$
 
 where, for $i\le j$, $[a_i,a_j]=\{a_k\in\mathcal{A}_t:a_i\le a_k\le a_j\}$.
 
@@ -247,7 +247,7 @@ $\{S_n\}_{n=0}^{T}$ is Markov and time-consistent with transition conditional be
 called a **DS-multiplicative random walk**. Concretely, for all $0\le n\le T-1$, $1\le t\le T-n$,
 $A\in\mathcal{P}(\mathcal{A}_t)$ and $s_0\in\mathcal{S}_0,\dots,s_n\in\mathcal{S}_n$,
 
-$$\nu\big(S_{n+t}\in As_n\mid S_0=s_0,\dots,S_n=s_n\big)=\nu\big(S_{n+t}\in As_n\mid S_n=s_n\big)=\beta_t(A).\tag{7}$$
+$$\nu\big(S_{n+t}\in As_n\mid S_0=s_0,\dots,S_n=s_n\big)=\nu\big(S_{n+t}\in As_n\mid S_n=s_n\big)=\beta_t(A)\tag{7}$$
 
 Infinitely many belief functions make the process a DS-multiplicative random walk, all constrained by the family
 $\{\beta_t\}$; we choose (6) for its excellent interpretability and minimal parametrisation. In fact $\beta_t$ in (6) is a
@@ -280,17 +280,17 @@ So far the belief space $(\Omega,\mathcal{F},\{\mathcal{F}_n\},\nu)$ adjusted fr
 $X\in\mathbb{R}^{\Omega}$, define the random variables $C[X\mid\mathcal{F}_n]$ and $C[X\mid S_0,\dots,S_n]$ on
 $\{S_0=s_0,\dots,S_n=s_n\}$ by
 
-$$C[X\mid\mathcal{F}_n](\omega):=C[X\mid S_0,\dots,S_n](\omega):=\oint X\,d\nu(\cdot\mid S_0=s_0,\dots,S_n=s_n),\tag{8}$$
+$$C[X\mid\mathcal{F}_n](\omega):=C[X\mid S_0,\dots,S_n](\omega):=\oint X\,d\nu(\cdot\mid S_0=s_0,\dots,S_n=s_n)\tag{8}$$
 
 and $C[X\mid S_n]$ analogously from $\nu(\cdot\mid S_n=s_n)$. The operator $C[\cdot\mid\mathcal{F}_n]$ is called the
 conditional Choquet expectation. For $0\le n\le T-1$, $1\le t\le T-n$ and any real function $\varphi$ on the range of
 $S_{n+t}$, (7) gives
 
-$$C\big[\varphi(S_{n+t})\mid\mathcal{F}_n\big]=C\big[\varphi(S_{n+t})\mid S_n\big].\tag{9}$$
+$$C\big[\varphi(S_{n+t})\mid\mathcal{F}_n\big]=C\big[\varphi(S_{n+t})\mid S_n\big]\tag{9}$$
 
 Using the bond $\{B_n\}$ as numéraire, the discounted process $\{S_n^{*}\}_{n=0}^{T}$ is defined, for $n=0,\dots,T$, by
 
-$$S_n^{*}=\frac{S_n}{B_n}=\frac{S_n}{(1+r)^{n}}.\tag{10}$$
+$$S_n^{*}=\frac{S_n}{B_n}=\frac{S_n}{(1+r)^{n}}\tag{10}$$
 
 By Theorem 2 of [17], $u>1+r>d>0$ is necessary and sufficient for the existence of an equivalent one-step Choquet
 martingale belief function. A belief function $\widehat{\nu}$ is *equivalent* to $\nu$ if $\nu(A)=0\Leftrightarrow\widehat{\nu}(A)=0$
@@ -298,14 +298,14 @@ for all $A\in\mathcal{F}$. The process $\{S_n^{*}\}$ under such a $\widehat{\nu}
 property and, over the whole horizon, the Choquet supermartingale property; i.e. for the conditional Choquet expectation
 $\widehat{C}[\cdot\mid\mathcal{F}_n]$ defined by $\widehat{\nu}$ and all $0\le n\le T-1$, $1\le t\le T-n$,
 
-$$\widehat{C}\big[S_{n+1}^{*}\mid\mathcal{F}_n\big]=S_n^{*},\tag{11}$$
+$$\widehat{C}\big[S_{n+1}^{*}\mid\mathcal{F}_n\big]=S_n^{*}\tag{11}$$
 
-$$\widehat{C}\big[S_{n+t}^{*}\mid\mathcal{F}_n\big]\le S_n^{*}.\tag{12}$$
+$$\widehat{C}\big[S_{n+t}^{*}\mid\mathcal{F}_n\big]\le S_n^{*}\tag{12}$$
 
 Note that without additivity, (11) does *not* imply equality in (12). The belief function $\widehat{\nu}$ so defined is
 completely determined by the two parameters
 
-$$\widehat{b_u}=\frac{1+r-d}{u-d}\qquad\text{and}\qquad\widehat{b_d}\in\big(0,\,1-\widehat{b_u}\,\big],\tag{13}$$
+$$\widehat{b_u}=\frac{1+r-d}{u-d}\qquad\text{and}\qquad\widehat{b_d}\in\big(0,\,1-\widehat{b_u}\,\big]\tag{13}$$
 
 and is called *risk-neutral*. Letting $\widehat{b_d}$ range over $(0,1-\widehat{b_u}]$ gives infinitely many risk-neutral
 belief functions. For given $\widehat{b_u}$ and $\widehat{b_d}$, $\widehat{\nu}$ in turn determines, through the
@@ -328,16 +328,16 @@ from time $n$, as a function on $\mathcal{W}(s_n)=\{U(s_n),D(s_n)\}$. Following 
 information, we add two artificial state-contingent (Arrow–Debreu) securities to the one-period market, with payoffs and
 prices
 
-$$A_{n+1}^{u}=\mathbf 1_{U(s_n)},\quad A_{n+1}^{d}=\mathbf 1_{D(s_n)},\tag{14}$$
+$$A_{n+1}^{u}=\mathbf 1_{U(s_n)},\quad A_{n+1}^{d}=\mathbf 1_{D(s_n)}\tag{14}$$
 
-$$A_{n}^{u}=\frac{\widehat{b_u}}{1+r},\quad A_{n}^{d}=\frac{\widehat{b_d}}{1+r}.\tag{15}$$
+$$A_{n}^{u}=\frac{\widehat{b_u}}{1+r},\quad A_{n}^{d}=\frac{\widehat{b_d}}{1+r}\tag{15}$$
 
 The partially resolving uncertainty principle says that there are confounded events: at time $n+1$ one may be unable to
 tell whether $U(s_n)$ or $D(s_n)$ occurred. One therefore considers
 $\mathcal{U}(s_n)=\{U(s_n),D(s_n),U(s_n)\cup D(s_n)\}$ and, for every function $X$ on $\mathcal{W}(s_n)$, takes a
 systematically pessimistic view by replacing $X$ with $[X]^{L}$, i.e. for $E\in\mathcal{U}(s_n)$,
 
-$$[X]^{L}(E)=\min\{X(F):F\subseteq E,\ F\in\mathcal{W}(s_n)\}.\tag{16}$$
+$$[X]^{L}(E)=\min\{X(F):F\subseteq E,\ F\in\mathcal{W}(s_n)\}\tag{16}$$
 
 In the one-period market on $[n,n+1]$ a portfolio is a vector $\delta_n=(\delta_n^0,\delta_n^1,\delta_n^2,\delta_n^3)$ of
 $\mathcal{F}_n$-measurable random variables, the long (if positive) or short (if negative) holdings of the bond, the stock
@@ -378,7 +378,7 @@ additive belief function, in agreement with the equivalent martingale measure of
 In the previous chapter we discussed the market model made of $\{B_n\}$ and $\{S_n\}$. Here we consider a European option
 with maturity $T$ and payoff
 
-$$Y_T=\varphi(S_T),\tag{17}$$
+$$Y_T=\varphi(S_T)\tag{17}$$
 
 where $\varphi(x)$ is a *contract function* defined on the range of $S_T$.
 
@@ -386,18 +386,18 @@ For a fixed $\widehat{b_d}\in(0,1-\widehat{b_u}]$ take the risk-neutral belief s
 $(\Omega,\mathcal{F},\{\mathcal{F}_n\}_{n=0}^{T},\widehat{\nu})$ and define on it the **bid price process** $\{Y_n\}_{n=0}^{T}$ of the
 option: for $n=0,\dots,T-1$,
 
-$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big],\tag{18}$$
+$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]\tag{18}$$
 
 where $\widehat{C}[\cdot\mid\mathcal{F}_n]$ is the conditional Choquet expectation with respect to $\widehat{\nu}$. Since
 $Y_T=\varphi(S_T)$, $Y_n=\varphi_n(S_n)$ for $n=0,\dots,T-1$, with $\varphi_n$ a function on the range of $S_n$: every
 $Y_n$ is a function of the corresponding $S_n$. In particular, as $\{S_0,\dots,S_T\}$ is time-consistent and Markov under the
 risk-neutral belief function $\widehat{\nu}$,
 
-$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid S_n\big].\tag{19}$$
+$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid S_n\big]\tag{19}$$
 
 Using again $\{B_n\}$ as numéraire, the discounted process $\{Y_n^{*}\}_{n=0}^{T}$ is defined by
 
-$$Y_n^{*}=\frac{Y_n}{B_n}=\frac{Y_n}{(1+r)^{n}}.\tag{20}$$
+$$Y_n^{*}=\frac{Y_n}{B_n}=\frac{Y_n}{(1+r)^{n}}\tag{20}$$
 
 **Proposition (martingale properties).** The discounted process $\{Y_n^*\}_{n=0}^{T}$ on the risk-neutral belief space
 satisfies:
@@ -412,7 +412,7 @@ then $\{Y_n^*\}$ is a Choquet martingale for every $\widehat{b_d}\in(0,1-\wideha
 process $\{Y_n\}$ is read as the evolution of the option **bid** price. Conversely, assuming $Y_T=\varphi(S_T)$, the
 **ask** price process $\{\overline{Y}_n\}$ is obtained by dualisation: for $n=0,\dots,T-1$,
 
-$$\overline{Y}_n=-\frac{1}{1+r}\,\widehat{C}\big[-\overline{Y}_{n+1}\mid\mathcal{F}_n\big].\tag{21}$$
+$$\overline{Y}_n=-\frac{1}{1+r}\,\widehat{C}\big[-\overline{Y}_{n+1}\mid\mathcal{F}_n\big]\tag{21}$$
 
 Thus the pair $\{Y_0,\dots,Y_T\}$ and $\{\overline{Y}_0,\dots,\overline{Y}_T\}$ models the time evolution of bid–ask spreads in a
 frictional market. (Spelled out for one period, with $V_u,V_d$ the next-period values at the up and down nodes:
@@ -437,9 +437,9 @@ European option, $\widehat{\nu}$ a risk-neutral belief function with parameters 
 (13), and $\{Y_n\},\{\overline{Y}_n\}$ the bid and ask price processes satisfying (18) and (21). Then for every
 $n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\{S_n=s_n\}$,
 
-$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k},\tag{22}$$
+$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\tag{22}$$
 
-$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}.\tag{23}$$
+$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\tag{23}$$
 
 The bid price is therefore the classical binomial price with up-probability $\widehat{b_u}$, independent of
 $\widehat{b_d}$; the ask price is the binomial price with up-probability $1-\widehat{b_d}$.
@@ -450,9 +450,9 @@ $\varphi(x)=\max\{K-x,0\}$, whose bid and ask price processes are written $\{P_n
 **Proposition 4.2.** Let $\varphi$ be a non-increasing contract function, with the other hypotheses as in Proposition 4.1.
 Then for every $n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\{S_n=s_n\}$,
 
-$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k},\tag{24}$$
+$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\tag{24}$$
 
-$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}.\tag{25}$$
+$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\tag{25}$$
 
 For a put the roles are exchanged: the **ask** price is the one independent of $\widehat{b_d}$.
 
@@ -515,9 +515,9 @@ In general the bid and ask price processes cannot be replicated by self-financin
 Indeed, to obtain a replicating portfolio, in every period $[n,n+1]$ one must pick, on the basis of the information known
 at $n$ (the stock history up to $n$), random vectors $\lambda_n,\delta_n$ with the same payoff in all future market states:
 
-$$\lambda_n^{0}B_{n+1}+\lambda_n^{1}S_{n+1}=Y_{n+1},\tag{26}$$
+$$\lambda_n^{0}B_{n+1}+\lambda_n^{1}S_{n+1}=Y_{n+1}\tag{26}$$
 
-$$\delta_n^{0}B_{n+1}+\delta_n^{1}S_{n+1}=\overline{Y}_{n+1}.\tag{27}$$
+$$\delta_n^{0}B_{n+1}+\delta_n^{1}S_{n+1}=\overline{Y}_{n+1}\tag{27}$$
 
 But the non-linear conditional Choquet expectation $\widehat{C}[\cdot\mid\mathcal{F}_n]$ means that the replicating portfolios are
 in general not self-financing, since
@@ -530,7 +530,7 @@ Y_n&=\tfrac{1}{1+r}\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]
 \ \ne\ \lambda_n^{0}B_n+\lambda_n^{1}S_n,
 \end{aligned}\tag{28}$$
 
-$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n, \tag{29}$$
+$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n \tag{29}$$
 
 unless $\lambda_n^{1}\ge0$ and $\delta_n^{1}\le0$ (positive homogeneity of $\widehat{C}$ for non-negative multipliers). We obtain
 the following proposition.
@@ -571,7 +571,7 @@ theoretical prices from Proposition 4.2. Once $r$ is fixed, the theoretical pric
 The *model error* is
 
 $$E(u,d,\widehat{b_d})=\sum_{K\in\mathcal{K}_{call}}\Big[\big(C_{0,M}^K-C_0^K\big)^2+\big(\overline{C}_{0,M}^K-\overline{C}_0^K\big)^2\Big]
-+\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big], \tag{30}$$
++\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big] \tag{30}$$
 
 and the goal is to solve
 
