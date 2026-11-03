@@ -15,10 +15,11 @@ def spread_vs_epsilon(kind: str, S0: float, K: float, u: float, d: float, R: flo
     """Ask - bid of a European ``'call'``/``'put'`` as a function of epsilon (Prop. 4.3, Fig. 1).
 
     ``b_d = epsilon * (1 - b_u)``: epsilon = 1 gives ``b_u + b_d = 1`` (zero spread, CRR); the spread is a
-    polynomial of degree ``T`` in epsilon. The thesis admits ``epsilon in (0, 1]``; the default grid
-    here is ``[0, 1)`` as in the original code (see ``docs/THESIS_ERRATA.md``, C6).
+    polynomial of degree ``T`` in epsilon. The admissible range is ``epsilon in (0, 1]``, so the default grid
+    is ``linspace(0.01, 1, 100)`` (the thesis code used ``arange(0, 1, 0.01)`` = [0, 1); see
+    ``docs/THESIS_ERRATA.md``, C6).
     """
-    eps = np.arange(0, 1, 0.01) if eps is None else np.asarray(eps, float)
+    eps = np.linspace(0.01, 1, 100) if eps is None else np.asarray(eps, float)
     bu = b_up(u, d, R)
     price = {"call": european_call_bid_ask, "put": european_put_bid_ask}[kind]
     return eps, np.array([(lambda b, a: a - b)(*price(S0, K, u, d, e * (1 - bu), R, T)) for e in eps])

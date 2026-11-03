@@ -2,6 +2,8 @@
 
 [English](README.md) | **简体中文**
 
+> 📄 **完整报告（英文）：[`docs/report/REPORT.md`](docs/report/REPORT.md)** —— 论文的英文版（理论、证明、META 校准），已纳入全部勘误。
+
 基于 **Dempster-Shafer（DS）证据理论** 的动态买卖价期权定价模型：采用二叉树形式的 DS 乘性随机徘徊，
 并用粒子群优化（PSO）对 META 期权报价进行校准（报价日 2023-09-29，到期日 2023-10-27，共 T = 20 个交易日）。
 
@@ -49,11 +51,13 @@ print(american_put_bid_ask(300.11, 350, u, d, b_d, R_DEFAULT, 20))     # 美式�
 | `src/dsbidask/data.py`、`datasets/` | CSV 读取与 4 个 META 期权数据文件 | 第 5 章 |
 | `src/dsbidask/fetch.py`、`scripts/fetch_quotes.py` | **免费**实时数据下载（见下文；本仓库中未运行） | – |
 | `src/dsbidask/plotting.py` | 全部绘图，仅用英文标签 | – |
+| `docs/report/REPORT.md` | **英文报告**：论文的英文翻译（已含勘误），图在 `docs/report/figures/`，由 `scripts/make_report_figures.py` 生成 | – |
+| `docs/thesis_corrections/` | 更正后的附录代码及中文论文的修改文本 | – |
 | `docs/THESIS_ERRATA.md` | 论文勘误：数据文件、代码、表头/图题 | – |
 | `docs/AMERICAN.md` | 美式看跌扩展的定义及已验证内容 | – |
 | `results/` | 下文数字所依据的多起点表与目标函数对比（CSV） | – |
 | `tests/` | 32 个测试（显式公式 vs 递推、CRR 极限、复制、美式 vs 原作者代码、校准） | – |
-| `.github/workflows/tests.yml` | 在 Python 3.10/3.12/3.13 上运行 `pytest` 的 CI（**尚未在 GitHub 上运行**） | – |
+| `.github/workflows/tests.yml` | 在 Python 3.10/3.12/3.13 上运行 `pytest` 的 CI | – |
 
 ## 复现结果
 
@@ -107,7 +111,7 @@ print(american_put_bid_ask(300.11, 350, u, d, b_d, R_DEFAULT, 20))     # 美式�
 3. **置信区间**：对报价做自助法得到参数不确定性（多起点的离散程度只是初步信号）。
 4. **边界**：论证或取消起作用的 `b_d ≥ 0.3` 边界。
 5. **连续时间**：将参数映射到 DS 几何布朗运动极限（论文展望）。
-6. **发布**：在 GitHub 上确认 CI（`tests` 工作流尚未核对）通过后打标签发布。
+6. **发布**：`tests` 工作流已在 GitHub 上通过，准备好后可打标签发布（如 `v0.3.0`）。
 
 ## 致谢与许可证
 

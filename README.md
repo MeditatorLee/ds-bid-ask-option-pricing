@@ -2,6 +2,9 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
+> 📄 **Read the full write-up: [`docs/report/REPORT.md`](docs/report/REPORT.md)** — the English edition of the thesis (theory, proofs,
+> META calibration), with all corrections applied.
+
 Dynamic **bid-ask option pricing under Dempster-Shafer (DS) uncertainty** with a binomial DS
 multiplicative random walk, calibrated to META option quotes (quote date 2023-09-29, expiry 2023-10-27,
 T = 20 trading days) with Particle Swarm Optimisation.
@@ -50,12 +53,14 @@ Multi-start: `python scripts/calibrate.py --starts 50 --out results/free_d.csv` 
 | `src/dsbidask/data.py`, `datasets/` | CSV loader and the four META option files |
 | `src/dsbidask/fetch.py`, `scripts/fetch_quotes.py` | **free** live-data download (see below; not run here) |
 | `src/dsbidask/plotting.py` | all plots, English labels only |
+| `docs/report/REPORT.md` | **English report**: translation of the thesis with corrections (figures in `docs/report/figures/`, made by `scripts/make_report_figures.py`) |
+| `docs/thesis_corrections/` | corrected appendix code and ready-to-paste fixes for the Chinese thesis |
 | `docs/THESIS_ERRATA.md` | audit of the thesis: data files, code, headers/captions |
 | `docs/AMERICAN.md` | definition of the American put extension and what is verified |
 | `results/` | multi-start tables and objective comparison (CSV) behind the numbers below |
 | `README.zh-CN.md` | Chinese README (same content, with thesis section references) |
 | `tests/` | 32 tests (closed form vs recursion, CRR limit, replication, American vs the authors' code, calibration) |
-| `.github/workflows/tests.yml` | CI running `pytest` on Python 3.10/3.12/3.13 (**not yet run on GitHub**) |
+| `.github/workflows/tests.yml` | CI running `pytest` on Python 3.10/3.12/3.13 |
 
 ## Results (reproduced)
 
@@ -121,7 +126,7 @@ extension, CI workflow, type hints and thesis-cited docstrings, 150-dpi figures 
 3. **Confidence intervals:** bootstrap the quotes to get parameter uncertainty (the multi-start spread is only a first signal).
 4. **Bounds:** justify or drop the `b_d >= 0.3` bound, which is active.
 5. **Continuous time:** map the parameters to a DS geometric Brownian motion limit (thesis outlook).
-6. **Releases:** verify the CI on GitHub (the `tests` workflow has not been checked yet) and tag a release.
+6. **Releases:** the `tests` workflow passes on GitHub; tag a release (e.g. `v0.3.0`) when ready.
 
 ## Credits and licence
 
