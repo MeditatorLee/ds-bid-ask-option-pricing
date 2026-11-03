@@ -141,14 +141,14 @@ bid–ask pricing formulas built on it offer a new approach to option pricing an
 
 ### 2.1 Dempster–Shafer uncertainty
 
-Let $\Omega=\{\omega_1,\dots,\omega_d\}$ be a finite non-empty set of states and $\mathcal{F}=\mathcal{P}(\Omega)$ its power
+Let $\Omega=\lbrace\omega_1,\dots,\omega_d\rbrace$ be a finite non-empty set of states and $\mathcal{F}=\mathcal{P}(\Omega)$ its power
 set. Let $\mathbb{R}^{\Omega}$ denote the set of all random variables on $\Omega$. Unlike classical probability, the
 Dempster–Shafer theory of Dempster [20] and Shafer [21] quantifies uncertainty with a non-additive measure called a
 *belief function*: a map $\nu:\mathcal{F}\to[0,1]$ such that
 
 1. $\nu(\varnothing)=0$ and $\nu(\Omega)=1$;
 2. for every $k\ge 2$ and $A_1,\dots,A_k\in\mathcal{F}$,
-   $$\nu\Big(\bigcup_{i=1}^{k}A_i\Big)\ \ge \sum_{\varnothing\neq I\subseteq\{1,\dots,k\}}(-1)^{|I|+1}\,\nu\Big(\bigcap_{i\in I}A_i\Big).$$
+   $$\nu\Big(\bigcup_{i=1}^{k}A_i\Big)\ \ge \sum_{\varnothing\neq I\subseteq\lbrace1,\dots,k\rbrace}(-1)^{|I|+1}\,\nu\Big(\bigcap_{i\in I}A_i\Big).$$
 
 Condition 2 is called complete monotonicity. If it holds with equality, $\nu$ reduces to a classical probability measure
 (usually denoted $P$). Every belief function has an associated set function, the *plausibility function*
@@ -163,7 +163,7 @@ $$\nu(A)=\sum_{B\subseteq A}\mu(B)\qquad\text{and}\qquad \overline{\nu}(A)=\sum_
 
 Every belief function induces a non-empty closed convex set of probability measures on $\mathcal{F}$, its *core*,
 
-$$\mathrm{core}(\nu)=\{P:\ P\text{ is a probability measure on }\mathcal{F},\ P\ge\nu\}.$$
+$$\mathrm{core}(\nu)=\lbraceP:\ P\text{ is a probability measure on }\mathcal{F},\ P\ge\nu\rbrace.$$
 
 Belief and plausibility can then be written, for every $A\in\mathcal{F}$, as
 
@@ -176,26 +176,26 @@ so $\nu$ and $\overline{\nu}$ are a lower and an upper probability.
 Conditioning in Dempster–Shafer theory is still an open question. We use the *multiplicative (geometric) conditioning rule*
 of Suppes and Zanotti [19]: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
-$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)} \tag{1}$$
+$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)} \qquad(1)$$
 
 The conditional belief function again induces a conditional core, $\mathrm{core}(\nu(\cdot\mid H))$. Two other common choices
 are Dempster's rule and the Bayesian rule: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
 $$\nu_D(E\mid H)=1-\frac{\overline{\nu}(E^{c}\cap H)}{\overline{\nu}(H)}=\frac{\nu\big((E\cap H)\cup H^{c}\big)-\nu(H^{c})}{1-\nu(H^{c})},$$
 
-$$\nu_B(E\mid H)=\min\Big(\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big)=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
+$$\nu_B(E\mid H)=\min\Big\lbrace\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big\rbrace=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
 
 Given $\nu(\cdot\mid H)$ and $X\in\mathbb{R}^{\Omega}$, the *conditional Choquet expectation* of $X$ with respect to
 $\nu(\cdot\mid H)$ is defined through the Choquet integral of Choquet [22],
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big) \tag{2}$$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big) \qquad(2)$$
 
 where $\sigma$ is a permutation of $\Omega$ with $X(\omega_{\sigma(1)})\ge\dots\ge X(\omega_{\sigma(d)})$,
-$E_i^{\sigma}=\{\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\}$ for $i=1,\dots,d$, and $X(\omega_{\sigma(d+1)})=0$.
+$E_i^{\sigma}=\lbrace\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\rbrace$ for $i=1,\dots,d$, and $X(\omega_{\sigma(d+1)})=0$.
 Moreover, through the conditional core, the conditional Choquet expectation can be regarded as a *local lower expectation*
 given $H$, because
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega) \tag{3}$$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega) \qquad(3)$$
 
 Furthermore, for the dual plausibility function $\overline{\nu}(\cdot\mid H)$ of $\nu(\cdot\mid H)$,
 
@@ -209,48 +209,48 @@ which is a *local upper expectation* given $H$.
 ### 3.1 The DS-multiplicative random walk and its extension
 
 Following Cinfrignini et al. [17], we build a model for stock bid and ask prices on the discrete time set
-$\{0,\dots,T\}$, where $T\in\mathbb{N}$ is a finite horizon. This section presents the theory and use of the
+$\lbrace0,\dots,T\rbrace$, where $T\in\mathbb{N}$ is a finite horizon. This section presents the theory and use of the
 DS-multiplicative random walk.
 
 Consider a discrete-time portfolio in a mixed market with one default-free bond in a frictionless market and one
 non-dividend-paying stock in a frictional market (transaction costs or information asymmetry). The bond price follows a
-deterministic process $\{B_n\}_{n=0}^{T}$ with $B_0=1$ and, for $n=1,\dots,T$,
+deterministic process $\lbraceB_n\rbrace_{n=0}^{T}$ with $B_0=1$ and, for $n=1,\dots,T$,
 
-$$B_n=(1+r)B_{n-1} \tag{4}$$
+$$B_n=(1+r)B_{n-1} \qquad(4)$$
 
 where $1+r>0$ and $r$ is the one-period risk-free rate over the holding period. The stock *bid* price follows a stochastic
-process $\{S_n\}_{n=0}^{T}$ such that, for $n=1,\dots,T$,
+process $\lbraceS_n\rbrace_{n=0}^{T}$ such that, for $n=1,\dots,T$,
 
-$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases} \tag{5}$$
+$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases} \qquad(5)$$
 
 with $S_0=s_0>0$ and $u>d>0$ the up and down factors.
 
-All processes live on the filtered measurable space $(\Omega,\mathcal{F},\{\mathcal{F}_n\}_{n=0}^{T})$ with
-$\Omega=\{1,\dots,2^{T}\}$, where $\mathcal{F}_n$ is the algebra generated by $\{S_0,\dots,S_n\}$, $\mathcal{F}_0=\{\varnothing,\Omega\}$
+All processes live on the filtered measurable space $(\Omega,\mathcal{F},\lbrace\mathcal{F}_n\rbrace_{n=0}^{T})$ with
+$\Omega=\lbrace1,\dots,2^{T}\rbrace$, where $\mathcal{F}_n$ is the algebra generated by $\lbraceS_0,\dots,S_n\rbrace$, $\mathcal{F}_0=\lbrace\varnothing,\Omega\rbrace$
 and $\mathcal{F}_T=\mathcal{P}(\Omega)$.
 
-The paths of $\{S_n\}$ are drawn on a recombining binomial tree; every state $\omega\in\Omega$ is a unique path,
+The paths of $\lbraceS_n\rbrace$ are drawn on a recombining binomial tree; every state $\omega\in\Omega$ is a unique path,
 corresponding to the $T$-bit binary expansion of $\omega-1$. For $n=1,\dots,T$ put
-$\mathcal{A}_n=\{a_k=u^{k}d^{\,n-k}:k=0,\dots,n\}$ and, for $s>0$ and $A\in\mathcal{P}(\mathcal{A}_n)$,
-$As=\{a_k s:a_k\in A\}$. The range of $S_n$ is $\mathcal{S}_n=\mathcal{A}_n s_0$.
+$\mathcal{A}_n=\lbracea_k=u^{k}d^{\,n-k}:k=0,\dots,n\rbrace$ and, for $s>0$ and $A\in\mathcal{P}(\mathcal{A}_n)$,
+$As=\lbracea_k s:a_k\in A\rbrace$. The range of $S_n$ is $\mathcal{S}_n=\mathcal{A}_n s_0$.
 
 Uncertainty is measured by a belief function $\nu:\mathcal{F}\to[0,1]$ chosen so that the $t$-step transitions form a
-family $\{\beta_t\}_{t=1}^{T}$ determined by only two parameters $b_u,b_d\in(0,1)$ with $b_u+b_d\le 1$, interpreted as the
+family $\lbrace\beta_t\rbrace_{t=1}^{T}$ determined by only two parameters $b_u,b_d\in(0,1)$ with $b_u+b_d\le 1$, interpreted as the
 one-step conditional beliefs in an up and a down move. For $t=1,\dots,T$ and $A\in\mathcal{P}(\mathcal{A}_t)$,
 
-$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big) \tag{6}$$
+$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big) \qquad(6)$$
 
-where, for $i\le j$, $[a_i,a_j]=\{a_k\in\mathcal{A}_t:a_i\le a_k\le a_j\}$.
+where, for $i\le j$, $[a_i,a_j]=\lbracea_k\in\mathcal{A}_t:a_i\le a_k\le a_j\rbrace$.
 
 Cinfrignini et al. [17] proved that there is a strictly positive belief function $\nu$ on $\mathcal{F}$ under which
-$\{S_n\}_{n=0}^{T}$ is Markov and time-consistent with transition conditional beliefs given by (6); such a process is
+$\lbraceS_n\rbrace_{n=0}^{T}$ is Markov and time-consistent with transition conditional beliefs given by (6); such a process is
 called a **DS-multiplicative random walk**. Concretely, for all $0\le n\le T-1$, $1\le t\le T-n$,
 $A\in\mathcal{P}(\mathcal{A}_t)$ and $s_0\in\mathcal{S}_0,\dots,s_n\in\mathcal{S}_n$,
 
-$$\nu\big(S_{n+t}\in As_n\mid S_0=s_0,\dots,S_n=s_n\big)=\nu\big(S_{n+t}\in As_n\mid S_n=s_n\big)=\beta_t(A)\tag{7}$$
+$$\nu\big(S_{n+t}\in As_n\mid S_0=s_0,\dots,S_n=s_n\big)=\nu\big(S_{n+t}\in As_n\mid S_n=s_n\big)=\beta_t(A)\qquad(7)$$
 
 Infinitely many belief functions make the process a DS-multiplicative random walk, all constrained by the family
-$\{\beta_t\}$; we choose (6) for its excellent interpretability and minimal parametrisation. In fact $\beta_t$ in (6) is a
+$\lbrace\beta_t\rbrace$; we choose (6) for its excellent interpretability and minimal parametrisation. In fact $\beta_t$ in (6) is a
 binomial-like belief distribution that also takes into account the *interval* beliefs in $A$, with the interval weight
 reduced to $1-(b_u+b_d)$: $\beta_t(A)$ sums binomial-like weights over all path segments of decreasing length, which are
 exactly the evidence that the process lies in $As_n$. If $b_u+b_d=1$, $\beta_t$ reduces to the classical binomial
@@ -261,13 +261,13 @@ Chapter 5.
 motion. As for the classical binomial model, replace the time step by $\Delta t$ with $t=N\Delta t$ and re-parametrise the
 one-step beliefs as $b_u=\lambda\Delta t+o(\Delta t)$, $b_d=\mu\Delta t+o(\Delta t)$. The $t$-step transition belief becomes
 
-$$\beta_t^{\Delta t}(A)=\sum_{k=0}^{t}\binom{t}{k}(\lambda\Delta t)^{k}(\mu\Delta t)^{t-k}\mathbf 1_{\{a_k\in A\}}
-+\sum_{j=1}^{t-1}\binom{t-j}{j}(\lambda\Delta t)^{j}(\mu\Delta t)^{t-j}\big(1-(\lambda+\mu)\Delta t\big)\mathbf 1_{\{[a_j,a_{t-j}]\subseteq A\}}.$$
+$$\beta_t^{\Delta t}(A)=\sum_{k=0}^{t}\binom{t}{k}(\lambda\Delta t)^{k}(\mu\Delta t)^{t-k}\mathbf 1_{\lbracea_k\in A\rbrace}
++\sum_{j=1}^{t-1}\binom{t-j}{j}(\lambda\Delta t)^{j}(\mu\Delta t)^{t-j}\big(1-(\lambda+\mu)\Delta t\big)\mathbf 1_{\lbrace[a_j,a_{t-j}]\subseteq A\rbrace}.$$
 
 Letting $\Delta t\to0$ and extending the Poisson limit theorem as in the discrete-time model of [17] gives the continuous
 $t$-step transition belief of the DS-geometric Brownian motion, with $\sigma^2=\lambda+\mu$ the diffusion intensity:
 
-$$\beta(A,t)=&e^{-(\lambda+\mu)t}\sum_{p=0}^{\infty}\frac{(\lambda t)^{p}}{p!}\mathbf 1_{\{a_p\in A\}} \\ &+\sum_{m<n}\int_0^{t}\frac{(\lambda\mu s)^{n-m}}{(n-m)!}e^{-(\lambda+\mu)s}\frac{(s\sigma^{2})^{n-m-1}}{\Gamma(n-m)}\mathbf 1_{\{[a_m,a_n]\subseteq A\}}\,ds.$$
+$$\beta(A,t)=&e^{-(\lambda+\mu)t}\sum_{p=0}^{\infty}\frac{(\lambda t)^{p}}{p!}\mathbf 1_{\lbracea_p\in A\rbrace} \\ &+\sum_{m<n}\int_0^{t}\frac{(\lambda\mu s)^{n-m}}{(n-m)!}e^{-(\lambda+\mu)s}\frac{(s\sigma^{2})^{n-m-1}}{\Gamma(n-m)}\mathbf 1_{\lbrace[a_m,a_n]\subseteq A\rbrace}\,ds.$$
 
 (These limit formulas are quoted from the thesis, which takes them from [17]; the continuous-time theory is outside the
 scope of this report and is listed as future work in Chapter 6.) This continuous-time model keeps the ability of DS theory
@@ -276,41 +276,41 @@ study relies on the Choquet weak convergence of Feng and Nguyen [23].
 
 ### 3.2 The equivalent one-step Choquet martingale belief function
 
-So far the belief space $(\Omega,\mathcal{F},\{\mathcal{F}_n\},\nu)$ adjusted from the "real world" has been fixed. For
+So far the belief space $(\Omega,\mathcal{F},\lbrace\mathcal{F}_n\rbrace,\nu)$ adjusted from the "real world" has been fixed. For
 $X\in\mathbb{R}^{\Omega}$, define the random variables $C[X\mid\mathcal{F}_n]$ and $C[X\mid S_0,\dots,S_n]$ on
-$\{S_0=s_0,\dots,S_n=s_n\}$ by
+$\lbraceS_0=s_0,\dots,S_n=s_n\rbrace$ by
 
-$$C[X\mid\mathcal{F}_n](\omega):=C[X\mid S_0,\dots,S_n](\omega):=\oint X\,d\nu(\cdot\mid S_0=s_0,\dots,S_n=s_n)\tag{8}$$
+$$C[X\mid\mathcal{F}_n](\omega):=C[X\mid S_0,\dots,S_n](\omega):=\oint X\,d\nu(\cdot\mid S_0=s_0,\dots,S_n=s_n)\qquad(8)$$
 
 and $C[X\mid S_n]$ analogously from $\nu(\cdot\mid S_n=s_n)$. The operator $C[\cdot\mid\mathcal{F}_n]$ is called the
 conditional Choquet expectation. For $0\le n\le T-1$, $1\le t\le T-n$ and any real function $\varphi$ on the range of
 $S_{n+t}$, (7) gives
 
-$$C\big[\varphi(S_{n+t})\mid\mathcal{F}_n\big]=C\big[\varphi(S_{n+t})\mid S_n\big]\tag{9}$$
+$$C\big[\varphi(S_{n+t})\mid\mathcal{F}_n\big]=C\big[\varphi(S_{n+t})\mid S_n\big]\qquad(9)$$
 
-Using the bond $\{B_n\}$ as numéraire, the discounted process $\{S_n^{*}\}_{n=0}^{T}$ is defined, for $n=0,\dots,T$, by
+Using the bond $\lbraceB_n\rbrace$ as numéraire, the discounted process $\lbraceS_n^{*}\rbrace_{n=0}^{T}$ is defined, for $n=0,\dots,T$, by
 
-$$S_n^{*}=\frac{S_n}{B_n}=\frac{S_n}{(1+r)^{n}}\tag{10}$$
+$$S_n^{*}=\frac{S_n}{B_n}=\frac{S_n}{(1+r)^{n}}\qquad(10)$$
 
 By Theorem 2 of [17], $u>1+r>d>0$ is necessary and sufficient for the existence of an equivalent one-step Choquet
 martingale belief function. A belief function $\widehat{\nu}$ is *equivalent* to $\nu$ if $\nu(A)=0\Leftrightarrow\widehat{\nu}(A)=0$
-for all $A\in\mathcal{F}$. The process $\{S_n^{*}\}$ under such a $\widehat{\nu}$ must satisfy the one-step Choquet martingale
+for all $A\in\mathcal{F}$. The process $\lbraceS_n^{*}\rbrace$ under such a $\widehat{\nu}$ must satisfy the one-step Choquet martingale
 property and, over the whole horizon, the Choquet supermartingale property; i.e. for the conditional Choquet expectation
 $\widehat{C}[\cdot\mid\mathcal{F}_n]$ defined by $\widehat{\nu}$ and all $0\le n\le T-1$, $1\le t\le T-n$,
 
-$$\widehat{C}\big[S_{n+1}^{*}\mid\mathcal{F}_n\big]=S_n^{*}\tag{11}$$
+$$\widehat{C}\big[S_{n+1}^{*}\mid\mathcal{F}_n\big]=S_n^{*}\qquad(11)$$
 
-$$\widehat{C}\big[S_{n+t}^{*}\mid\mathcal{F}_n\big]\le S_n^{*}\tag{12}$$
+$$\widehat{C}\big[S_{n+t}^{*}\mid\mathcal{F}_n\big]\le S_n^{*}\qquad(12)$$
 
 Note that without additivity, (11) does *not* imply equality in (12). The belief function $\widehat{\nu}$ so defined is
 completely determined by the two parameters
 
-$$\widehat{b_u}=\frac{1+r-d}{u-d}\qquad\text{and}\qquad\widehat{b_d}\in\big(0,\,1-\widehat{b_u}\,\big]\tag{13}$$
+$$\widehat{b_u}=\frac{1+r-d}{u-d}\qquad\text{and}\qquad\widehat{b_d}\in\big(0,\,1-\widehat{b_u}\,\big]\qquad(13)$$
 
 and is called *risk-neutral*. Letting $\widehat{b_d}$ range over $(0,1-\widehat{b_u}]$ gives infinitely many risk-neutral
 belief functions. For given $\widehat{b_u}$ and $\widehat{b_d}$, $\widehat{\nu}$ in turn determines, through the
 multiplicative conditioning rule, a family of risk-neutral $t$-step transition belief functions
-$\{\widehat{\beta_t}\}_{t=1}^{T}$ of the form (6) with parameters $\widehat{b_u}$ and $\widehat{b_d}$.
+$\lbrace\widehat{\beta_t}\rbrace_{t=1}^{T}$ of the form (6) with parameters $\widehat{b_u}$ and $\widehat{b_d}$.
 
 > **Remark (one-step form).** For one period, (11) is the identity
 > $\tfrac{1}{1+r}\big[\widehat{b_u}\,us+\widehat{b_d}\,ds+(1-\widehat{b_u}-\widehat{b_d})\min(us,ds)\big]=s$,
@@ -322,22 +322,22 @@ $\{\widehat{\beta_t}\}_{t=1}^{T}$ of the form (6) with parameters $\widehat{b_u}
 This section justifies the parameter choice (13) with a generalised one-step dynamic no-arbitrage principle, built on the
 single-period case of the *partially resolving uncertainty* principle of Jaffray [24].
 
-Fix a price history $\{S_0=s_0,\dots,S_n=s_n\}$ and define at time $n+1$ the events $U(s_n)=\{S_{n+1}=us_n\}$ and
-$D(s_n)=\{S_{n+1}=ds_n\}$, the "up" and "down" moves. Every random variable $X$ depending on $S_{n+1}$ can then be seen,
-from time $n$, as a function on $\mathcal{W}(s_n)=\{U(s_n),D(s_n)\}$. Following Černý [25] for markets with incomplete
+Fix a price history $\lbraceS_0=s_0,\dots,S_n=s_n\rbrace$ and define at time $n+1$ the events $U(s_n)=\lbraceS_{n+1}=us_n\rbrace$ and
+$D(s_n)=\lbraceS_{n+1}=ds_n\rbrace$, the "up" and "down" moves. Every random variable $X$ depending on $S_{n+1}$ can then be seen,
+from time $n$, as a function on $\mathcal{W}(s_n)=\lbraceU(s_n),D(s_n)\rbrace$. Following Černý [25] for markets with incomplete
 information, we add two artificial state-contingent (Arrow–Debreu) securities to the one-period market, with payoffs and
 prices
 
-$$A_{n+1}^{u}=\mathbf 1_{U(s_n)},\quad A_{n+1}^{d}=\mathbf 1_{D(s_n)}\tag{14}$$
+$$A_{n+1}^{u}=\mathbf 1_{U(s_n)},\quad A_{n+1}^{d}=\mathbf 1_{D(s_n)}\qquad(14)$$
 
-$$A_{n}^{u}=\frac{\widehat{b_u}}{1+r},\quad A_{n}^{d}=\frac{\widehat{b_d}}{1+r}\tag{15}$$
+$$A_{n}^{u}=\frac{\widehat{b_u}}{1+r},\quad A_{n}^{d}=\frac{\widehat{b_d}}{1+r}\qquad(15)$$
 
 The partially resolving uncertainty principle says that there are confounded events: at time $n+1$ one may be unable to
 tell whether $U(s_n)$ or $D(s_n)$ occurred. One therefore considers
-$\mathcal{U}(s_n)=\{U(s_n),D(s_n),U(s_n)\cup D(s_n)\}$ and, for every function $X$ on $\mathcal{W}(s_n)$, takes a
+$\mathcal{U}(s_n)=\lbraceU(s_n),D(s_n),U(s_n)\cup D(s_n)\rbrace$ and, for every function $X$ on $\mathcal{W}(s_n)$, takes a
 systematically pessimistic view by replacing $X$ with $[X]^{L}$, i.e. for $E\in\mathcal{U}(s_n)$,
 
-$$[X]^{L}(E)=\min\{X(F):F\subseteq E,\ F\in\mathcal{W}(s_n)\}\tag{16}$$
+$$[X]^{L}(E)=\min\lbraceX(F):F\subseteq E,\ F\in\mathcal{W}(s_n)\rbrace\qquad(16)$$
 
 In the one-period market on $[n,n+1]$ a portfolio is a vector $\delta_n=(\delta_n^0,\delta_n^1,\delta_n^2,\delta_n^3)$ of
 $\mathcal{F}_n$-measurable random variables, the long (if positive) or short (if negative) holdings of the bond, the stock
@@ -375,31 +375,31 @@ additive belief function, in agreement with the equivalent martingale measure of
 
 ### 4.1 Bid–ask pricing of European options
 
-In the previous chapter we discussed the market model made of $\{B_n\}$ and $\{S_n\}$. Here we consider a European option
+In the previous chapter we discussed the market model made of $\lbraceB_n\rbrace$ and $\lbraceS_n\rbrace$. Here we consider a European option
 with maturity $T$ and payoff
 
-$$Y_T=\varphi(S_T)\tag{17}$$
+$$Y_T=\varphi(S_T)\qquad(17)$$
 
 where $\varphi(x)$ is a *contract function* defined on the range of $S_T$.
 
 For a fixed $\widehat{b_d}\in(0,1-\widehat{b_u}]$ take the risk-neutral belief space
-$(\Omega,\mathcal{F},\{\mathcal{F}_n\}_{n=0}^{T},\widehat{\nu})$ and define on it the **bid price process** $\{Y_n\}_{n=0}^{T}$ of the
+$(\Omega,\mathcal{F},\lbrace\mathcal{F}_n\rbrace_{n=0}^{T},\widehat{\nu})$ and define on it the **bid price process** $\lbraceY_n\rbrace_{n=0}^{T}$ of the
 option: for $n=0,\dots,T-1$,
 
-$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]\tag{18}$$
+$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]\qquad(18)$$
 
 where $\widehat{C}[\cdot\mid\mathcal{F}_n]$ is the conditional Choquet expectation with respect to $\widehat{\nu}$. Since
 $Y_T=\varphi(S_T)$, $Y_n=\varphi_n(S_n)$ for $n=0,\dots,T-1$, with $\varphi_n$ a function on the range of $S_n$: every
-$Y_n$ is a function of the corresponding $S_n$. In particular, as $\{S_0,\dots,S_T\}$ is time-consistent and Markov under the
+$Y_n$ is a function of the corresponding $S_n$. In particular, as $\lbraceS_0,\dots,S_T\rbrace$ is time-consistent and Markov under the
 risk-neutral belief function $\widehat{\nu}$,
 
-$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid S_n\big]\tag{19}$$
+$$Y_n=\frac{1}{1+r}\,\widehat{C}\big[Y_{n+1}\mid S_n\big]\qquad(19)$$
 
-Using again $\{B_n\}$ as numéraire, the discounted process $\{Y_n^{*}\}_{n=0}^{T}$ is defined by
+Using again $\lbraceB_n\rbrace$ as numéraire, the discounted process $\lbraceY_n^{*}\rbrace_{n=0}^{T}$ is defined by
 
-$$Y_n^{*}=\frac{Y_n}{B_n}=\frac{Y_n}{(1+r)^{n}}\tag{20}$$
+$$Y_n^{*}=\frac{Y_n}{B_n}=\frac{Y_n}{(1+r)^{n}}\qquad(20)$$
 
-**Proposition (martingale properties).** The discounted process $\{Y_n^*\}_{n=0}^{T}$ on the risk-neutral belief space
+**Proposition (martingale properties).** The discounted process $\lbraceY_n^*\rbrace_{n=0}^{T}$ on the risk-neutral belief space
 satisfies:
 
 1. it is a *one-step Choquet martingale*: $\widehat{C}[Y_{n+1}^*\mid\mathcal{F}_n]=Y_n^*$ for $n=0,\dots,T-1$;
@@ -408,13 +408,13 @@ satisfies:
    when $\widehat{b_d}=1-\widehat{b_u}$.
 
 The condition $\widehat{b_d}=1-\widehat{b_u}$ is sufficient but not necessary: take $\varphi$ constant on the range of $S_T$;
-then $\{Y_n^*\}$ is a Choquet martingale for every $\widehat{b_d}\in(0,1-\widehat{b_u}]$. Financially, the undiscounted
-process $\{Y_n\}$ is read as the evolution of the option **bid** price. Conversely, assuming $Y_T=\varphi(S_T)$, the
-**ask** price process $\{\overline{Y}_n\}$ is obtained by dualisation: for $n=0,\dots,T-1$,
+then $\lbraceY_n^*\rbrace$ is a Choquet martingale for every $\widehat{b_d}\in(0,1-\widehat{b_u}]$. Financially, the undiscounted
+process $\lbraceY_n\rbrace$ is read as the evolution of the option **bid** price. Conversely, assuming $Y_T=\varphi(S_T)$, the
+**ask** price process $\lbrace\overline{Y}_n\rbrace$ is obtained by dualisation: for $n=0,\dots,T-1$,
 
-$$\overline{Y}_n=-\frac{1}{1+r}\,\widehat{C}\big[-\overline{Y}_{n+1}\mid\mathcal{F}_n\big]\tag{21}$$
+$$\overline{Y}_n=-\frac{1}{1+r}\,\widehat{C}\big[-\overline{Y}_{n+1}\mid\mathcal{F}_n\big]\qquad(21)$$
 
-Thus the pair $\{Y_0,\dots,Y_T\}$ and $\{\overline{Y}_0,\dots,\overline{Y}_T\}$ models the time evolution of bid–ask spreads in a
+Thus the pair $\lbraceY_0,\dots,Y_T\rbrace$ and $\lbrace\overline{Y}_0,\dots,\overline{Y}_T\rbrace$ models the time evolution of bid–ask spreads in a
 frictional market. (Spelled out for one period, with $V_u,V_d$ the next-period values at the up and down nodes:
 $Y_n=\tfrac1{1+r}\big[\widehat{b_u}V_u+\widehat{b_d}V_d+(1-\widehat{b_u}-\widehat{b_d})\min(V_u,V_d)\big]$ and
 $\overline{Y}_n=\tfrac1{1+r}\big[\widehat{b_u}V_u+\widehat{b_d}V_d+(1-\widehat{b_u}-\widehat{b_d})\max(V_u,V_d)\big]$.
@@ -428,31 +428,31 @@ $\overline{\nu}$ and Dempster's conditioning rule, but this leads to a model wit
 Section 2.2.
 
 **Monotone contract functions.** Let $Y_T=\overline{Y}_T=\varphi(S_T)$ be the payoff of a European option with
-$\varphi$ non-decreasing. A typical example is the European call, $\varphi(x)=\max\{x-K,0\}$ with strike $K$, whose
-bid and ask price processes are written $\{C_n\}$ and $\{\overline{C}_n\}$. For non-decreasing $\varphi$ the following
-proposition gives an explicit expression of $\{Y_n\}$ and $\{\overline{Y}_n\}$.
+$\varphi$ non-decreasing. A typical example is the European call, $\varphi(x)=\max\lbracex-K,0\rbrace$ with strike $K$, whose
+bid and ask price processes are written $\lbraceC_n\rbrace$ and $\lbrace\overline{C}_n\rbrace$. For non-decreasing $\varphi$ the following
+proposition gives an explicit expression of $\lbraceY_n\rbrace$ and $\lbrace\overline{Y}_n\rbrace$.
 
 **Proposition 4.1.** Let $\varphi$ be a non-decreasing contract function, $Y_T=\overline{Y}_T=\varphi(S_T)$ the payoff of a
 European option, $\widehat{\nu}$ a risk-neutral belief function with parameters $\widehat{b_d},\widehat{b_u}$ satisfying
-(13), and $\{Y_n\},\{\overline{Y}_n\}$ the bid and ask price processes satisfying (18) and (21). Then for every
-$n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\{S_n=s_n\}$,
+(13), and $\lbraceY_n\rbrace,\lbrace\overline{Y}_n\rbrace$ the bid and ask price processes satisfying (18) and (21). Then for every
+$n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\lbraceS_n=s_n\rbrace$,
 
-$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\tag{22}$$
+$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\qquad(22)$$
 
-$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\tag{23}$$
+$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\qquad(23)$$
 
 The bid price is therefore the classical binomial price with up-probability $\widehat{b_u}$, independent of
 $\widehat{b_d}$; the ask price is the binomial price with up-probability $1-\widehat{b_d}$.
 
 The other case is $Y_T=\overline{Y}_T=\varphi(S_T)$ with $\varphi$ non-increasing. A typical example is the European put,
-$\varphi(x)=\max\{K-x,0\}$, whose bid and ask price processes are written $\{P_n\}$ and $\{\overline{P}_n\}$.
+$\varphi(x)=\max\lbraceK-x,0\rbrace$, whose bid and ask price processes are written $\lbraceP_n\rbrace$ and $\lbrace\overline{P}_n\rbrace$.
 
 **Proposition 4.2.** Let $\varphi$ be a non-increasing contract function, with the other hypotheses as in Proposition 4.1.
-Then for every $n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\{S_n=s_n\}$,
+Then for every $n=0,\dots,T-1$, $s_n\in\mathcal{S}_n$ and $\omega\in\lbraceS_n=s_n\rbrace$,
 
-$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\tag{24}$$
+$$Y_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(1-\widehat{b_d}\big)^{k}\big(\widehat{b_d}\big)^{T-n-k}\qquad(24)$$
 
-$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\tag{25}$$
+$$\overline{Y}_n(\omega)=\frac{1}{(1+r)^{T-n}}\sum_{k=0}^{T-n}\binom{T-n}{k}\,\varphi\big(u^{k}d^{\,T-n-k}s_n\big)\,\big(\widehat{b_u}\big)^{k}\big(1-\widehat{b_u}\big)^{T-n-k}\qquad(25)$$
 
 For a put the roles are exchanged: the **ask** price is the one independent of $\widehat{b_d}$.
 
@@ -460,7 +460,7 @@ For a put the roles are exchanged: the **ask** price is the one independent of $
 > straddle they give an inconsistent pair (bid above ask; see the example below); the backward recursion (19), (21) must be
 > used instead.
 
-When $\varphi$ is monotone, Propositions 4.1 and 4.2 pin down the bid–ask spread process $\{\overline{Y}_n-Y_n\}$. The next
+When $\varphi$ is monotone, Propositions 4.1 and 4.2 pin down the bid–ask spread process $\lbrace\overline{Y}_n-Y_n\rbrace$. The next
 proposition states that, for monotone contract functions, the initial spread $\overline{Y}_0-Y_0$ is a polynomial whose
 form depends on the choice of the risk-neutral belief function.
 
@@ -470,7 +470,7 @@ $\widehat{b_d}=\epsilon\,(1-\widehat{b_u})$, $\epsilon\in(0,1]$. Then the time-0
 of degree $T$ in $\epsilon$.
 
 By Proposition 4.3, Figure 1 shows the spreads of European calls (a) and puts (b) for $S_0=K=100$, $r=0.01$, $u=1.05$,
-$d=0.95$ and $T\in\{5,10,15,20\}$. For small $\epsilon$ the call spread is far larger than the put spread, and it grows with
+$d=0.95$ and $T\in\lbrace5,10,15,20\rbrace$. For small $\epsilon$ the call spread is far larger than the put spread, and it grows with
 the maturity $T$ (at $\epsilon=0.01$: 18.72, 44.55, 75.79, 113.77 for $T=5,10,15,20$ against 2.48, 2.35, 2.25, 2.03 for
 puts, which are almost independent of $T$); all spreads vanish at $\epsilon=1$, where the model reduces to the classical
 CRR tree.
@@ -481,19 +481,19 @@ CRR tree.
 
 *Figure 1. European option spreads $\overline{C}_0-C_0$ and $\overline{P}_0-P_0$ as functions of $\epsilon\in(0,1]$.*
 
-For non-monotone contract functions we have no explicit expression for $\{Y_n\}$, $\{\overline{Y}_n\}$ or the spread process
-$\{\overline{Y}_n-Y_n\}$. The prices can still be computed by the backward step-wise procedure (19), (21).
+For non-monotone contract functions we have no explicit expression for $\lbraceY_n\rbrace$, $\lbrace\overline{Y}_n\rbrace$ or the spread process
+$\lbrace\overline{Y}_n-Y_n\rbrace$. The prices can still be computed by the backward step-wise procedure (19), (21).
 
 **Example (straddle).** Let $T=5$, $r=0.04$, $S_0=100$, $u=1.2$, $d=0.8$, so that $\widehat{b_u}=0.6$ and
-$\widehat{b_d}\in(0,0.4]$. Figure 2 shows the evolution of $\{S_n\}$. Let $Y_5=\max\{K-S_5,0\}+\max\{S_5-K,0\}=|S_5-K|$ be the payoff
+$\widehat{b_d}\in(0,0.4]$. Figure 2 shows the evolution of $\lbraceS_n\rbrace$. Let $Y_5=\max\lbraceK-S_5,0\rbrace+\max\lbraceS_5-K,0\rbrace=|S_5-K|$ be the payoff
 of a straddle — a put and a call on the same underlying with the same strike — with $K=100$. Figure 3 shows the bid (a) and
-ask (b) price processes $\{Y_n\}_{n=0}^{5}$ and $\{\overline{Y}_n\}_{n=0}^{5}$, with $\widehat{b_d}=0.4\cdot0.999$. Computed by
+ask (b) price processes $\lbraceY_n\rbrace_{n=0}^{5}$ and $\lbrace\overline{Y}_n\rbrace_{n=0}^{5}$, with $\widehat{b_d}=0.4\cdot0.999$. Computed by
 the backward recursion, the time-0 prices are **bid 35.302 and ask 35.349**. (The thesis computed this example with the
 monotone formulas (22)–(25), which gives the impossible pair bid 35.342 > ask 35.309; see [Editorial changes](#editorial-changes).)
 
 ![Fig. 2](figures/fig2_stock_tree.png)
 
-*Figure 2. Evolution of the stock bid price $\{S_n\}_{n=0}^{5}$ for $S_0=100$, $u=1.2$, $d=0.8$.*
+*Figure 2. Evolution of the stock bid price $\lbraceS_n\rbrace_{n=0}^{5}$ for $S_0=100$, $u=1.2$, $d=0.8$.*
 
 | (a) bid tree | (b) ask tree |
 |---|---|
@@ -506,18 +506,18 @@ monotone formulas (22)–(25), which gives the impossible pair bid 35.342 > ask 
 In financial mathematics, replication prices a derivative by a portfolio of underlying assets (stock, bond) and the
 risk-free asset that reproduces its payoff exactly. The core idea: if two portfolios have the same payoff in every future
 state of the market, their current prices must be equal, otherwise there is arbitrage. We have discussed the bid and ask
-price processes $\{Y_n\}$ and $\{\overline{Y}_n\}$. To replicate the European payoff it therefore suffices to find two
-bivariate processes $\{\lambda_n\}$ and $\{\delta_n\}$, with $\lambda_n=(\lambda_n^0,\lambda_n^1)$ and
+price processes $\lbraceY_n\rbrace$ and $\lbrace\overline{Y}_n\rbrace$. To replicate the European payoff it therefore suffices to find two
+bivariate processes $\lbrace\lambda_n\rbrace$ and $\lbrace\delta_n\rbrace$, with $\lambda_n=(\lambda_n^0,\lambda_n^1)$ and
 $\delta_n=(\delta_n^0,\delta_n^1)$, where $\lambda_n^0,\delta_n^0$ and $\lambda_n^1,\delta_n^1$ are the long (if positive) or
 short (if negative) holdings of bond and stock.
 
-In general the bid and ask price processes cannot be replicated by self-financing portfolios $\{\lambda_n\}$, $\{\delta_n\}$.
+In general the bid and ask price processes cannot be replicated by self-financing portfolios $\lbrace\lambda_n\rbrace$, $\lbrace\delta_n\rbrace$.
 Indeed, to obtain a replicating portfolio, in every period $[n,n+1]$ one must pick, on the basis of the information known
 at $n$ (the stock history up to $n$), random vectors $\lambda_n,\delta_n$ with the same payoff in all future market states:
 
-$$\lambda_n^{0}B_{n+1}+\lambda_n^{1}S_{n+1}=Y_{n+1}\tag{26}$$
+$$\lambda_n^{0}B_{n+1}+\lambda_n^{1}S_{n+1}=Y_{n+1}\qquad(26)$$
 
-$$\delta_n^{0}B_{n+1}+\delta_n^{1}S_{n+1}=\overline{Y}_{n+1}\tag{27}$$
+$$\delta_n^{0}B_{n+1}+\delta_n^{1}S_{n+1}=\overline{Y}_{n+1}\qquad(27)$$
 
 But the non-linear conditional Choquet expectation $\widehat{C}[\cdot\mid\mathcal{F}_n]$ means that the replicating portfolios are
 in general not self-financing, since
@@ -528,18 +528,18 @@ Y_n&=\tfrac{1}{1+r}\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]
 &=\tfrac{1}{1+r}\Big(\lambda_n^{0}(1+r)B_n+\widehat{C}\big[\lambda_n^{1}S_{n+1}\mid\mathcal{F}_n\big]\Big)
 =\lambda_n^{0}B_n+\tfrac{1}{1+r}\widehat{C}\big[\lambda_n^{1}S_{n+1}\mid\mathcal{F}_n\big]
 \ \ne\ \lambda_n^{0}B_n+\lambda_n^{1}S_n,
-\end{aligned}\tag{28}$$
+\end{aligned}\qquad(28)$$
 
-$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n \tag{29}$$
+$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n \qquad(29)$$
 
 unless $\lambda_n^{1}\ge0$ and $\delta_n^{1}\le0$ (positive homogeneity of $\widehat{C}$ for non-negative multipliers). We obtain
 the following proposition.
 
 **Proposition 4.4.** Let $\varphi$ be a **monotone** contract function, $Y_T=\overline{Y}_T=\varphi(S_T)$ the payoff of a
 European option, and $\widehat{\nu}$ a risk-neutral belief function with parameters $\widehat{b_d},\widehat{b_u}$ satisfying (13).
-For the two bivariate processes $\{\lambda_n\}_{n=0}^{T-1}$ and $\{\delta_n\}_{n=0}^{T-1}$ defined by (26) and (27): if
-$\varphi$ is non-decreasing, $\{\lambda_n\}$ (the bid replicating strategy) is self-financing; if $\varphi$ is non-increasing,
-$\{\delta_n\}$ (the ask replicating strategy) is self-financing.
+For the two bivariate processes $\lbrace\lambda_n\rbrace_{n=0}^{T-1}$ and $\lbrace\delta_n\rbrace_{n=0}^{T-1}$ defined by (26) and (27): if
+$\varphi$ is non-decreasing, $\lbrace\lambda_n\rbrace$ (the bid replicating strategy) is self-financing; if $\varphi$ is non-increasing,
+$\lbrace\delta_n\rbrace$ (the ask replicating strategy) is self-financing.
 
 ---
 ## 5. Calibration to market data
@@ -551,10 +551,10 @@ Yahoo! Finance through the `yfinance` package, and the options are assumed to be
 
 ### 5.1 Least-squares calibration
 
-The calibration assumes that the stock bid price process $\{S_n\}_{n=0}^{T}$ is a DS-multiplicative random walk under an
+The calibration assumes that the stock bid price process $\lbraceS_n\rbrace_{n=0}^{T}$ is a DS-multiplicative random walk under an
 equivalent one-step Choquet martingale belief function $\widehat{\nu}$. This means that $\widehat{\nu}$ generates a family of
-$t$-step transition belief functions $\{\widehat{\beta_t}\}_{t=1}^{T}$ of the form (6) with parameters $\widehat{b_u}$ and
-$\widehat{b_d}$. Equivalently, the discounted bid price process $\{Y_n^*\}$ of every European option with payoff
+$t$-step transition belief functions $\lbrace\widehat{\beta_t}\rbrace_{t=1}^{T}$ of the form (6) with parameters $\widehat{b_u}$ and
+$\widehat{b_d}$. Equivalently, the discounted bid price process $\lbraceY_n^*\rbrace$ of every European option with payoff
 $Y_T=\varphi(S_T)$ is a one-step Choquet martingale and a global Choquet supermartingale, the bid prices being computed by
 the backward procedure (19), (21).
 
@@ -571,11 +571,11 @@ theoretical prices from Proposition 4.2. Once $r$ is fixed, the theoretical pric
 The *model error* is
 
 $$E(u,d,\widehat{b_d})=\sum_{K\in\mathcal{K}_{call}}\Big[\big(C_{0,M}^K-C_0^K\big)^2+\big(\overline{C}_{0,M}^K-\overline{C}_0^K\big)^2\Big]
-+\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big] \tag{30}$$
++\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big] \qquad(30)$$
 
 and the goal is to solve
 
-$$\begin{aligned}\text{minimise}\quad & E(u,d,\widehat{b_d})\\ \text{s.t.}\quad & 0<d<1+r<u,\qquad 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}. \end{aligned} \tag{31}$$
+$$\begin{aligned}\text{minimise}\quad & E(u,d,\widehat{b_d})\\ \text{s.t.}\quad & 0<d<1+r<u,\qquad 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}. \end{aligned} \qquad(31)$$
 
 Problem (31) is a constrained optimisation problem in which $E(u,d,\widehat{b_d})$ is a non-linear, non-smooth objective
 function containing maximum operations, because the call and put contract functions $C_0^K,\overline{C}_0^K,P_0^K,\overline{P}_0^K$
@@ -739,7 +739,7 @@ algorithmic trading.
 
 Throughout, $\widehat{C}[\cdot\mid S_n=s]$ of a function $f$ of $S_{n+1}$ has, cf. Proposition 3 of [17], the one-step form
 
-$$\widehat{C}\big[f(S_{n+1})\mid S_n=s\big]=\widehat{b_u}f(us)+\widehat{b_d}f(ds)+\big(1-\widehat{b_u}-\widehat{b_d}\big)\min\{f(us),f(ds)\},$$
+$$\widehat{C}\big[f(S_{n+1})\mid S_n=s\big]=\widehat{b_u}f(us)+\widehat{b_d}f(ds)+\big(1-\widehat{b_u}-\widehat{b_d}\big)\min\lbracef(us),f(ds)\rbrace,$$
 
 and the dual (upper) expectation $-\widehat{C}[-f(S_{n+1})\mid S_n=s]$ is the same expression with $\max$ instead of $\min$.
 
@@ -759,7 +759,7 @@ the minimum is attained at $ds$ (weights $\widehat{b_u}$ and $1-\widehat{b_u}$) 
 $1-\widehat{b_d}$ and $\widehat{b_d}$). The functions $\varphi_{T-1},\overline{\varphi}_{T-1}$ are non-decreasing: they are
 combinations with non-negative weights of $s\mapsto\varphi_T(us)$ and $s\mapsto\varphi_T(ds)$, both non-decreasing in $s$.
 
-Now suppose that, for some $n\in\{0,\dots,T-1\}$, $\varphi_{n+1},\overline{\varphi}_{n+1}:\mathcal{S}_{n+1}\to\mathbb{R}$ are
+Now suppose that, for some $n\in\lbrace0,\dots,T-1\rbrace$, $\varphi_{n+1},\overline{\varphi}_{n+1}:\mathcal{S}_{n+1}\to\mathbb{R}$ are
 non-decreasing, and define for $s_n\in\mathcal{S}_n$
 
 $$\varphi_n(s_n)=\frac{1}{1+r}\Big(\widehat{b_u}\varphi_{n+1}(us_n)+\big(1-\widehat{b_u}\big)\varphi_{n+1}(ds_n)\Big),\qquad
@@ -870,7 +870,7 @@ the audit results of [`docs/THESIS_ERRATA.md`](../THESIS_ERRATA.md)).
 - **E2** In the proofs, $\overline{\varphi}_T(s_{T-1})$ and $\varphi_n(s_{T-1})$ should read $\overline{\varphi}_{T-1}(s_{T-1})$ and $\varphi_n(s_n)$.
 - **E3** Figure 2's caption said $n=0,\dots,3$, but the tree has $n=0,\dots,5$.
 - **E4** After (13) the thesis wrote "$\widehat{b_u}\in(0,1-\widehat{b_u}]$"; it is $\widehat{b_d}$. In Section 2.1, $\max_{P\in\mathrm{core}(A)}$ is
-  $\max_{P\in\mathrm{core}(\nu)}$, and in (2) $E_i^{\sigma}=\{\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\}$.
+  $\max_{P\in\mathrm{core}(\nu)}$, and in (2) $E_i^{\sigma}=\lbrace\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\rbrace$.
 - **E5** Discussion of Figure 1: the thesis said the spread curves show no clear dependence on $T$; the call spread clearly grows
   with $T$ (numbers in Section 4.1). Proposition 4.3: degree *at most* $T$.
 - **E6** Whole-document: Chinese terms normalised (e.g. "DS-multiplicative random walk" instead of "stochastic wandering").
