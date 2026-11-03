@@ -575,7 +575,7 @@ $$E(u,d,\widehat{b_d})=\sum_{K\in\mathcal{K}_{call}}\Big[\big(C_{0,M}^K-C_0^K\bi
 
 and the goal is to solve
 
-$$\begin{aligned}\text{minimise}\quad & E(u,d,\widehat{b_d})\\ \text{s.t.}\quad & 0<d<1+r<u,\qquad 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}. \end{aligned} \qquad(31)$$
+$$\min_{u,\,d,\,\widehat{b_d}} E(u,d,\widehat{b_d})\quad\text{s.t.}\quad 0<d<1+r<u, 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}\qquad(31)$$
 
 Problem (31) is a constrained optimisation problem in which $E(u,d,\widehat{b_d})$ is a non-linear, non-smooth objective
 function containing maximum operations, because the call and put contract functions $C_0^K,\overline{C}_0^K,P_0^K,\overline{P}_0^K$
