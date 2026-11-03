@@ -176,26 +176,26 @@ so $\nu$ and $\overline{\nu}$ are a lower and an upper probability.
 Conditioning in Dempster–Shafer theory is still an open question. We use the *multiplicative (geometric) conditioning rule*
 of Suppes and Zanotti [19]: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
-$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)}.\tag{1}$$
+$$\nu(E\mid H)=\frac{\nu(E\cap H)}{\nu(H)}. \tag{1} $$
 
 The conditional belief function again induces a conditional core, $\mathrm{core}(\nu(\cdot\mid H))$. Two other common choices
 are Dempster's rule and the Bayesian rule: for $E,H\in\mathcal{F}$ with $\nu(H)>0$,
 
 $$\nu_D(E\mid H)=1-\frac{\overline{\nu}(E^{c}\cap H)}{\overline{\nu}(H)}=\frac{\nu\big((E\cap H)\cup H^{c}\big)-\nu(H^{c})}{1-\nu(H^{c})},$$
 
-$$\nu_B(E\mid H)=\min\Big\{\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big\}=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
+$$\nu_B(E\mid H)=\min\Big{\frac{P(E\cap H)}{P(H)}:P\in\mathrm{core}(\nu)\Big}=\frac{\nu(E\cap H)}{\nu(E\cap H)+\overline{\nu}(E^{c}\cap H)}.$$
 
 Given $\nu(\cdot\mid H)$ and $X\in\mathbb{R}^{\Omega}$, the *conditional Choquet expectation* of $X$ with respect to
 $\nu(\cdot\mid H)$ is defined through the Choquet integral of Choquet [22],
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big),\tag{2}$$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\sum_{i=1}^{d}\Big(X(\omega_{\sigma(i)})-X(\omega_{\sigma(i+1)})\Big)\,\nu\big(E_i^{\sigma}\mid H\big), \tag{2} $$
 
 where $\sigma$ is a permutation of $\Omega$ with $X(\omega_{\sigma(1)})\ge\dots\ge X(\omega_{\sigma(d)})$,
 $E_i^{\sigma}=\{\omega_{\sigma(1)},\dots,\omega_{\sigma(i)}\}$ for $i=1,\dots,d$, and $X(\omega_{\sigma(d+1)})=0$.
 Moreover, through the conditional core, the conditional Choquet expectation can be regarded as a *local lower expectation*
 given $H$, because
 
-$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega).\tag{3}$$
+$$\oint X(\omega)\,d\nu(\omega\mid H)=\min_{P\in\mathrm{core}(\nu(\cdot\mid H))}\int X(\omega)\,dP(\omega). \tag{3} $$
 
 Furthermore, for the dual plausibility function $\overline{\nu}(\cdot\mid H)$ of $\nu(\cdot\mid H)$,
 
@@ -216,12 +216,12 @@ Consider a discrete-time portfolio in a mixed market with one default-free bond 
 non-dividend-paying stock in a frictional market (transaction costs or information asymmetry). The bond price follows a
 deterministic process $\{B_n\}_{n=0}^{T}$ with $B_0=1$ and, for $n=1,\dots,T$,
 
-$$B_n=(1+r)B_{n-1},\tag{4}$$
+$$B_n=(1+r)B_{n-1}, \tag{4} $$
 
 where $1+r>0$ and $r$ is the one-period risk-free rate over the holding period. The stock *bid* price follows a stochastic
 process $\{S_n\}_{n=0}^{T}$ such that, for $n=1,\dots,T$,
 
-$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases}\tag{5}$$
+$$S_n=\begin{cases}u\,S_{n-1}&\text{if the stock goes up,}\\ d\,S_{n-1}&\text{if the stock goes down,}\end{cases} \tag{5} $$
 
 with $S_0=s_0>0$ and $u>d>0$ the up and down factors.
 
@@ -238,7 +238,7 @@ Uncertainty is measured by a belief function $\nu:\mathcal{F}\to[0,1]$ chosen so
 family $\{\beta_t\}_{t=1}^{T}$ determined by only two parameters $b_u,b_d\in(0,1)$ with $b_u+b_d\le 1$, interpreted as the
 one-step conditional beliefs in an up and a down move. For $t=1,\dots,T$ and $A\in\mathcal{P}(\mathcal{A}_t)$,
 
-$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big),\tag{6}$$
+$$\beta_t(A)=\sum_{a_k\in A}\binom{t}{k}b_u^{k}b_d^{\,t-k}+\sum_{[a_k,a_{k+j}]\subseteq A,\ j\ge 1}\binom{t-j}{k}b_u^{k}b_d^{\,t-j-k}\big(1-(b_u+b_d)\big), \tag{6} $$
 
 where, for $i\le j$, $[a_i,a_j]=\{a_k\in\mathcal{A}_t:a_i\le a_k\le a_j\}$.
 
@@ -267,8 +267,7 @@ $$\beta_t^{\Delta t}(A)=\sum_{k=0}^{t}\binom{t}{k}(\lambda\Delta t)^{k}(\mu\Delt
 Letting $\Delta t\to0$ and extending the Poisson limit theorem as in the discrete-time model of [17] gives the continuous
 $t$-step transition belief of the DS-geometric Brownian motion, with $\sigma^2=\lambda+\mu$ the diffusion intensity:
 
-$$\beta(A,t)=e^{-(\lambda+\mu)t}\sum_{p=0}^{\infty}\frac{(\lambda t)^{p}}{p!}\mathbf 1_{\{a_p\in A\}}
-+\sum_{m<n}\int_0^{t}\frac{(\lambda\mu s)^{n-m}}{(n-m)!}e^{-(\lambda+\mu)s}\frac{(s\sigma^{2})^{n-m-1}}{\Gamma(n-m)}\mathbf 1_{\{[a_m,a_n]\subseteq A\}}\,ds.$$
+$$\beta(A,t)=&e^{-(\lambda+\mu)t}\sum_{p=0}^{\infty}\frac{(\lambda t)^{p}}{p!}\mathbf 1_{\{a_p\in A\}} \\ &+\sum_{m<n}\int_0^{t}\frac{(\lambda\mu s)^{n-m}}{(n-m)!}e^{-(\lambda+\mu)s}\frac{(s\sigma^{2})^{n-m-1}}{\Gamma(n-m)}\mathbf 1_{\{[a_m,a_n]\subseteq A\}}\,ds.$$
 
 (These limit formulas are quoted from the thesis, which takes them from [17]; the continuous-time theory is outside the
 scope of this report and is listed as future work in Chapter 6.) This continuous-time model keeps the ability of DS theory
@@ -531,7 +530,7 @@ Y_n&=\tfrac{1}{1+r}\widehat{C}\big[Y_{n+1}\mid\mathcal{F}_n\big]
 \ \ne\ \lambda_n^{0}B_n+\lambda_n^{1}S_n,
 \end{aligned}\tag{28}$$
 
-$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n,\tag{29}$$
+$$\overline{Y}_n\ne\delta_n^{0}B_n+\delta_n^{1}S_n, \tag{29}$$
 
 unless $\lambda_n^{1}\ge0$ and $\delta_n^{1}\le0$ (positive homogeneity of $\widehat{C}$ for non-negative multipliers). We obtain
 the following proposition.
@@ -572,11 +571,11 @@ theoretical prices from Proposition 4.2. Once $r$ is fixed, the theoretical pric
 The *model error* is
 
 $$E(u,d,\widehat{b_d})=\sum_{K\in\mathcal{K}_{call}}\Big[\big(C_{0,M}^K-C_0^K\big)^2+\big(\overline{C}_{0,M}^K-\overline{C}_0^K\big)^2\Big]
-+\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big],\tag{30}$$
++\sum_{K\in\mathcal{K}_{put}}\Big[\big(P_{0,M}^K-P_0^K\big)^2+\big(\overline{P}_{0,M}^K-\overline{P}_0^K\big)^2\Big], \tag{30}$$
 
 and the goal is to solve
 
-$$\begin{aligned}\text{minimise}\quad & E(u,d,\widehat{b_d})\\ \text{s.t.}\quad & 0<d<1+r<u,\qquad 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}.\end{aligned}\tag{31}$$
+$$\begin{aligned}\text{minimise}\quad & E(u,d,\widehat{b_d})\\ \text{s.t.}\quad & 0<d<1+r<u,\qquad 0<\widehat{b_d}\le 1-\frac{1+r-d}{u-d}. \end{aligned} \tag{31}$$
 
 Problem (31) is a constrained optimisation problem in which $E(u,d,\widehat{b_d})$ is a non-linear, non-smooth objective
 function containing maximum operations, because the call and put contract functions $C_0^K,\overline{C}_0^K,P_0^K,\overline{P}_0^K$
