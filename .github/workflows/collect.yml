@@ -1,0 +1,42 @@
+name: collect-snapshot
+# MANUAL ONLY for now. To collect automatically, uncomment the schedule below.
+# GitHub cron runs in UTC and ignores daylight saving, so two entries cover 15:30-15:59 New York in both seasons;
+# the script itself refuses to run outside that window, so the wrong one is a harmless no-op.
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Space-separated tickers"
+        default: "META"
+      force:
+        description: "Ignore the market-hours window (quotes may be stale)"
+        type: boolean
+        default: false
+#  schedule:
+#    - cron: "40 19 * * 1-5"   # 15:40 EDT (summer)
+#    - cron: "40 20 * * 1-5"   # 15:40 EST (winter)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-snapshot
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[fetch]"
+      - name: Collect
+        run: python scripts/collect_snapshot.py ${{ inputs.tickers || 'META' }} ${{ inputs.force && '--force' || '' }}
+      - name: Commit new snapshots
+        run: |
+          git config user.name "snapshot-bot"
+          git config user.email "snapshot-bot@users.noreply.github.com"
+          git add data/snapshots
+          if git diff --cached --quiet; then echo "nothing new"; else git commit -m "data: option snapshots $(date -u +%F)" && git push; fi

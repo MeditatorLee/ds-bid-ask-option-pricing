@@ -48,6 +48,9 @@ Multi-start: `python scripts/calibrate.py --starts 50 --out results/free_d.csv` 
 | `src/dsbidask/pricing.py` | closed-form European bid/ask (scalar + vectorised over strikes), CRR, node-wise trees |
 | `src/dsbidask/choquet.py` | general backward-recursion pricer (any payoff, optional American exercise), early-exercise nodes |
 | `src/dsbidask/replication.py` | replicating portfolios and self-financing check (thesis Sec. 4.2) |
+| `src/dsbidask/ambiguity.py` | **extension**: symmetric and state-dependent ambiguity, per-node recursion vectorised over strikes, calibration (see `docs/AMBIGUITY.md`) |
+| `src/dsbidask/continuous.py` | **extension**: DS geometric Brownian motion (diffusive limit): closed-form bid/ask as Black-Scholes at a shifted spot, PDE solver for any payoff, calibration (see `docs/CONTINUOUS_LIMIT.md`) |
+| `src/dsbidask/snapshots.py`, `scripts/collect_snapshot.py` | **extension**: daily option-chain snapshot store for a future backtest (not run here; `.github/workflows/collect.yml` is manual-trigger only) |
 | `src/dsbidask/theory.py` | spread vs epsilon (Fig. 1), put spread vs strike, European vs American (Fig. 7) |
 | `src/dsbidask/calibration.py` | vectorised objective (thesis eq. 30 + spread-aware variants), PSO, multi-start with SLSQP polish |
 | `src/dsbidask/data.py`, `datasets/` | CSV loader and the four META option files |
@@ -56,10 +59,12 @@ Multi-start: `python scripts/calibrate.py --starts 50 --out results/free_d.csv` 
 | `docs/report/REPORT.md` | **English report**: translation of the thesis with corrections (figures in `docs/report/figures/`, made by `scripts/make_report_figures.py`) |
 | `docs/thesis_corrections/` | corrected appendix code and ready-to-paste fixes for the Chinese thesis |
 | `docs/THESIS_ERRATA.md` | audit of the thesis: data files, code, headers/captions |
+| `docs/CONTINUOUS_LIMIT.md` | definition of the DS-GBM, propositions with proofs, numerical verification, META test |
+| `docs/AMBIGUITY.md` | symmetric / state-dependent ambiguity: definition, what is verified, held-out comparison on META |
 | `docs/AMERICAN.md` | definition of the American put extension and what is verified |
 | `results/` | multi-start tables and objective comparison (CSV) behind the numbers below |
 | `README.zh-CN.md` | Chinese README (same content, with thesis section references) |
-| `tests/` | 32 tests (closed form vs recursion, CRR limit, replication, American vs the authors' code, calibration) |
+| `tests/` | 71 tests (closed form vs recursion, CRR limit, replication, American vs the authors' code, calibration, ambiguity extensions, offline snapshot store, continuous limit) |
 | `.github/workflows/tests.yml` | CI running `pytest` on Python 3.10/3.12/3.13 |
 
 ## Results (reproduced)

@@ -1,0 +1,1396 @@
+diff --git a/.github/workflows/collect.yml b/.github/workflows/collect.yml
+new file mode 100644
+index 0000000..5c09ae6
+--- /dev/null
++++ b/.github/workflows/collect.yml
+@@ -0,0 +1,42 @@
++name: collect-snapshot
++# MANUAL ONLY for now. To collect automatically, uncomment the schedule below.
++# GitHub cron runs in UTC and ignores daylight saving, so two entries cover 15:30-15:59 New York in both seasons;
++# the script itself refuses to run outside that window, so the wrong one is a harmless no-op.
++on:
++  workflow_dispatch:
++    inputs:
++      tickers:
++        description: "Space-separated tickers"
++        default: "META"
++      force:
++        description: "Ignore the market-hours window (quotes may be stale)"
++        type: boolean
++        default: false
++#  schedule:
++#    - cron: "40 19 * * 1-5"   # 15:40 EDT (summer)
++#    - cron: "40 20 * * 1-5"   # 15:40 EST (winter)
++
++permissions:
++  contents: write
++
++concurrency:
++  group: collect-snapshot
++  cancel-in-progress: false
++
++jobs:
++  collect:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: "3.12"
++      - run: pip install -e ".[fetch]"
++      - name: Collect
++        run: python scripts/collect_snapshot.py ${{ inputs.tickers || 'META' }} ${{ inputs.force && '--force' || '' }}
++      - name: Commit new snapshots
++        run: |
++          git config user.name "snapshot-bot"
++          git config user.email "snapshot-bot@users.noreply.github.com"
++          git add data/snapshots
++          if git diff --cached --quiet; then echo "nothing new"; else git commit -m "data: option snapshots $(date -u +%F)" && git push; fi
+diff --git a/README.md b/README.md
+index 7c53670..4908ba1 100644
+--- a/README.md
++++ b/README.md
+@@ -48,6 +48,9 @@ Multi-start: `python scripts/calibrate.py --starts 50 --out results/free_d.csv`
+ | `src/dsbidask/pricing.py` | closed-form European bid/ask (scalar + vectorised over strikes), CRR, node-wise trees |
+ | `src/dsbidask/choquet.py` | general backward-recursion pricer (any payoff, optional American exercise), early-exercise nodes |
+ | `src/dsbidask/replication.py` | replicating portfolios and self-financing check (thesis Sec. 4.2) |
++| `src/dsbidask/ambiguity.py` | **extension**: symmetric and state-dependent ambiguity, per-node recursion vectorised over strikes, calibration (see `docs/AMBIGUITY.md`) |
++| `src/dsbidask/continuous.py` | **extension**: DS geometric Brownian motion (diffusive limit): closed-form bid/ask as Black-Scholes at a shifted spot, PDE solver for any payoff, calibration (see `docs/CONTINUOUS_LIMIT.md`) |
++| `src/dsbidask/snapshots.py`, `scripts/collect_snapshot.py` | **extension**: daily option-chain snapshot store for a future backtest (not run here; `.github/workflows/collect.yml` is manual-trigger only) |
+ | `src/dsbidask/theory.py` | spread vs epsilon (Fig. 1), put spread vs strike, European vs American (Fig. 7) |
+ | `src/dsbidask/calibration.py` | vectorised objective (thesis eq. 30 + spread-aware variants), PSO, multi-start with SLSQP polish |
+ | `src/dsbidask/data.py`, `datasets/` | CSV loader and the four META option files |
+@@ -56,10 +59,12 @@ Multi-start: `python scripts/calibrate.py --starts 50 --out results/free_d.csv`
+ | `docs/report/REPORT.md` | **English report**: translation of the thesis with corrections (figures in `docs/report/figures/`, made by `scripts/make_report_figures.py`) |
+ | `docs/thesis_corrections/` | corrected appendix code and ready-to-paste fixes for the Chinese thesis |
+ | `docs/THESIS_ERRATA.md` | audit of the thesis: data files, code, headers/captions |
++| `docs/CONTINUOUS_LIMIT.md` | definition of the DS-GBM, propositions with proofs, numerical verification, META test |
++| `docs/AMBIGUITY.md` | symmetric / state-dependent ambiguity: definition, what is verified, held-out comparison on META |
+ | `docs/AMERICAN.md` | definition of the American put extension and what is verified |
+ | `results/` | multi-start tables and objective comparison (CSV) behind the numbers below |
+ | `README.zh-CN.md` | Chinese README (same content, with thesis section references) |
+-| `tests/` | 32 tests (closed form vs recursion, CRR limit, replication, American vs the authors' code, calibration) |
++| `tests/` | 71 tests (closed form vs recursion, CRR limit, replication, American vs the authors' code, calibration, ambiguity extensions, offline snapshot store, continuous limit) |
+ | `.github/workflows/tests.yml` | CI running `pytest` on Python 3.10/3.12/3.13 |
+ 
+ ## Results (reproduced)
+diff --git a/docs/AMBIGUITY.md b/docs/AMBIGUITY.md
+new file mode 100644
+index 0000000..7786f1f
+--- /dev/null
++++ b/docs/AMBIGUITY.md
+@@ -0,0 +1,61 @@
++# Ambiguity extensions: symmetric and state-dependent (not in the thesis)
++
++Code: `src/dsbidask/ambiguity.py`. Tests: `tests/test_ambiguity.py`. Experiment: `scripts/compare_ambiguity.py`
++(`results/ambiguity_comparison.csv`) and `scripts/spread_by_moneyness.py` (`results/spread_by_moneyness.csv`).
++
++## Models
++
++With `q_u = (R-d)/(u-d)`, `q_d = 1-q_u` and total ambiguity `a = 1 - b_u - b_d`:
++
++| kind | `b_u` | `b_d` | property |
++|---|---|---|---|
++| `thesis` | `q_u` | `q_d - a` | call bid and put ask are the CRR price; `C_bid - P_ask = S0 - K/R^T` exactly |
++| `symmetric` | `q_u - a/2` | `q_d - a/2` | belief set centred on the CRR measure; at `T = 1` the synthetic-forward interval is centred (tested) |
++
++`state-dependent`: `a(n, S) = a * exp(-0.5 (ln(S/S0)/width)^2)`; `width = inf` is the constant case.
++Both kinds have the same number of parameters; `a = f * max_ambiguity` with `f in [0,1]` makes every point feasible.
++
++## Verified (tests)
++
++* `thesis` kind with constant `a` equals the closed forms of `pricing.py` (calls, puts) and the American put of `choquet.py`.
++* `a = 0` gives CRR with zero spread, for both kinds.
++* `bid <= ask`, prices non-negative; a state-dependent belief set is nested in the constant one, so its interval is narrower.
++* Infeasible `a` raises.
++
++## Result on the META quotes (2023-09-29 snapshot, 42 calls + 33 puts, free d, wide bounds)
++
++Strike-wise 4-fold cross-validation (fit on 3/4 of strikes, pooled error on the held-out 1/4), `price` loss:
++
++| model | in-sample RMSE | held-out RMSE | held-out mean model spread (market 0.202) |
++|---|---|---|---|
++| thesis, constant a | 0.249 | 0.278 | 0.065 |
++| thesis, state-dependent | 0.246 | 0.275 | 0.061 |
++| **symmetric, constant a** | **0.232** | **0.256** | **0.115** |
++| symmetric, state-dependent | 0.232 | 0.256 | 0.114 |
++
++* **Symmetric beats the thesis parametrisation**, in-sample and held-out (about 8 % lower RMSE held-out) and roughly
++  doubles the model spread, with the same number of parameters.
++* **State-dependent ambiguity does not help.** The fitted width sits on its upper bound (0.5, nearly constant) in three of
++  four cases; the one interior solution (thesis kind, width 0.014) gains 0.003 RMSE in-sample. The hypothesis that
++  an at-the-money bump is needed is **not supported**.
++* Weighting the spread more (`mid_spread`, weight 16) barely changes the picture (see the CSV): `a` stays about 0.002.
++
++## Where the missing spread is (symmetric, constant a)
++
++| bucket (K / spot) | quotes | market spread | model spread |
++|---|---|---|---|
++| calls and puts, 0.95-1.05 | 11 | 0.49-0.51 | 0.42-0.44 |
++| calls, > 1.20 | 26 | 0.082 | 0.005 |
++| puts, < 0.80 | 18 | 0.127 | 0.009 |
++
++Near the money the model reproduces the spread (about 85 %). In the wings it gives almost none, while the market
++quotes 0.08-0.13 USD on options worth cents. Those wing spreads look like a **tick-size / fixed-cost floor**, not
++ambiguity. This is an interpretation of one snapshot, not a tested claim.
++
++## Caveats
++
++* One snapshot, one expiry, 75 quotes; cross-validation by strike is not out-of-time validation.
++* The mid error changes sign across moneyness (positive at the money, negative in the wings): a constant-`u, d`
++  binomial cannot produce a smile. The extensions here do not address that.
++* Differential evolution, 2 seeds per fit; optima of this landscape are known to be seed dependent (THESIS_ERRATA C5).
++* No arbitrage or time-consistency result is proved for per-node masses.
+diff --git a/docs/CONTINUOUS_LIMIT.md b/docs/CONTINUOUS_LIMIT.md
+new file mode 100644
+index 0000000..052ab31
+--- /dev/null
++++ b/docs/CONTINUOUS_LIMIT.md
+@@ -0,0 +1,114 @@
++# Continuous-time limit: the DS geometric Brownian motion (diffusive scaling)
++
++**Status: extension of the thesis, not a thesis result.** Code: `src/dsbidask/continuous.py`. Tests: `tests/test_continuous.py`.
++Reproduce: `python scripts/continuous_market_test.py`. Proofs below are complete except where a cited theorem is used (marked **cited**).
++
++## 0. Definition
++
++Take the DS-multiplicative random walk of thesis Sec. 3.1 with $n$ steps of length $\Delta=T/n$ and
++$$u_n=e^{\sigma\sqrt\Delta},\quad d_n=1/u_n,\quad R_n=e^{r\Delta},\quad q_n=\frac{R_n-d_n}{u_n-d_n},\quad \varepsilon_n=1-b_u-b_d=\frac{\theta\sqrt\Delta}{\sigma},$$
++with $\sigma>0$ the volatility and $\theta\ge 0$ the **drift ambiguity per year**. Two parametrisations of the one-step masses are used:
++
++| kind | $b_u$ | $b_d$ | central drift offset $m_c$ |
++|---|---|---|---|
++| `thesis` | $q_n$ | $1-q_n-\varepsilon_n$ | $\theta$ |
++| `symmetric` | $q_n-\varepsilon_n/2$ | $1-q_n-\varepsilon_n/2$ | $0$ |
++
++The **DS geometric Brownian motion** $(\sigma,\theta)$ is defined as the limit $n\to\infty$ of the bid/ask recursions (19) and (21):
++$$Y_k=R_n^{-1}\big[b_uY_u+b_dY_d+\varepsilon_n\min(Y_u,Y_d)\big],\qquad \bar Y_k=R_n^{-1}\big[b_u\bar Y_u+b_d\bar Y_d+\varepsilon_n\max(\bar Y_u,\bar Y_d)\big].$$
++It is a limit of *nonlinear expectations of Markov functionals of $S_T$*. Weak convergence of the belief function on path space
++(the Feng-Nguyen route mentioned in the thesis, Sec. 6) is **not** shown here.
++
++## 1. Two lemmas
++
++**Lemma 1 (centred form).** With $\pi=b_u+\varepsilon/2$: $\;b_uf_u+b_df_d+\varepsilon\min(f_u,f_d)=\pi f_u+(1-\pi)f_d-\tfrac{\varepsilon}{2}|f_u-f_d|$, and with $\max$ the sign of the last term is $+$.
++*Proof.* $\min(a,b)=\frac{a+b}{2}-\frac{|a-b|}{2}$ and $\max(a,b)=\frac{a+b}{2}+\frac{|a-b|}{2}$. $\square$
++
++**Lemma 2 (monotone payoffs).** If $\varphi$ is non-decreasing, every $Y_k$ is non-decreasing in $S$ (induction: a non-negative combination of $Y_{k+1}(Su)$ and $Y_{k+1}(Sd)$), so $\min=Y_d$, $\max=Y_u$ and
++$$\text{bid}=e^{-rT}E_{p_L}\varphi(S_T),\quad \text{ask}=e^{-rT}E_{p_U}\varphi(S_T),\qquad p_L=b_u,\;p_U=1-b_d,$$
++where $S_T=S_0u^Nd^{n-N}$, $N\sim\mathrm{Bin}(n,p)$. For non-increasing $\varphi$ the two probabilities are swapped. $\square$
++
++## 2. Which scaling gives a limit
++
++**Proposition 1 (Poisson scaling is vacuous).** If $b_u=\lambda\Delta$, $b_d=\mu\Delta$ and $u>1>d$ are fixed (the limit of Sec. 3.1 of the report, applied to prices), then for a call $\text{bid}\to0$ and $\text{ask}\to\infty$.
++*Proof.* By Lemma 2, $E_pS_T=S_0\,(d+p(u-d))^n$. Bid: $p\le\lambda'\Delta$ gives $E_pS_T\le S_0d^n e^{\lambda'T(u-d)/d}\to0$ and $(S-K)^+\le S$. Ask: $p=1-\mu\Delta$ gives $E_pS_T\ge S_0u^n e^{-\mu'T(u-d)/u}\to\infty$ and $(S-K)^+\ge S-K$. $\square$
++(In the report this limit is used for the $t$-step *transition belief*, not for prices; the proposition says that pricing needs $(u,d)$ rescaled.)
++
++**Proposition 2 (trichotomy).** Let $r\ge0$ and $\varepsilon'_n=\varepsilon_n$ (thesis) or $\varepsilon_n/2$ (symmetric), so $p_U=q_n+\varepsilon'_n$.
++(i) If $\varepsilon_n/\sqrt\Delta\to\infty$ (e.g. $\varepsilon_n$ constant), the call ask tends to $\infty$.
++(ii) If $\varepsilon_n/\sqrt\Delta\to0$, bid and ask both tend to Black-Scholes.
++(iii) If $\varepsilon_n=\theta\sqrt\Delta/\sigma$, the limit is non-degenerate (Theorem 1).
++*Proof of (i).* $q_nu+(1-q_n)d=R_n$, so $E_{p_U}S_T=S_0(R_n+x_n)^n$ with $x_n=\varepsilon'_n(u-d)\ge2\sigma\varepsilon'_n\sqrt\Delta$. Since $R_n\ge1$ and $\ln(1+x)\ge x-x^2/2$, $E_{p_U}S_T\ge S_0\exp(nx_n-nx_n^2/2)$. Now $nx_n\ge2\sigma T\varepsilon'_n/\sqrt\Delta\to\infty$ while $nx_n^2\le 4\sigma^2T(1+o(1))$ because $\varepsilon'_n\le1$. Hence $E_{p_U}S_T\to\infty$ and $\text{ask}\ge e^{-rT}(E_{p_U}S_T-K)\to\infty$. (ii) is Theorem 1 with $m=0$ plus the same estimate. $\square$
++
++## 3. Closed forms for monotone payoffs
++
++**Theorem 1.** Let $p_n=q_n+\dfrac{m\sqrt\Delta}{2\sigma}$ and let $\varphi$ be continuous with linear growth. Then
++$$e^{-rT}E_{p_n}\varphi(S_T)\;\longrightarrow\;e^{-rT}E\,\varphi\!\big(S_0e^{(r+m-\sigma^2/2)T+\sigma\sqrt T\,Z}\big),\quad Z\sim N(0,1).$$
++For a call this equals $\mathrm{BS}_C(S_0e^{mT},K)$.
++
++*Proof.* Write $\ln(S_T/S_0)=\sigma\sqrt\Delta\sum_{i\le n}\xi_i$, $\xi_i=\pm1$, $P(\xi_i=1)=p_n$.
++1. *Mean.* $2q_n-1=\dfrac{e^{r\Delta}-\cosh\sigma\sqrt\Delta}{\sinh\sigma\sqrt\Delta}=\dfrac{r-\sigma^2/2}{\sigma}\sqrt\Delta+O(\Delta^{3/2})$ and $2(p_n-q_n)=m\sqrt\Delta/\sigma$, so $E\ln(S_T/S_0)=n\sigma\sqrt\Delta(2p_n-1)\to(r+m-\sigma^2/2)T$.
++2. *Variance.* $n\sigma^2\Delta\cdot4p_n(1-p_n)\to\sigma^2T$ since $p_n\to\frac12$.
++3. *Normality.* The summands are bounded by $\sigma\sqrt\Delta\to0$, so the Lindeberg condition holds trivially and $\ln(S_T/S_0)$ converges in law to the normal with these moments.
++4. *Uniform integrability.* $E e^{\gamma\ln(S_T/S_0)}=\big(\cosh(\gamma\sigma\sqrt\Delta)+(2p_n-1)\sinh(\gamma\sigma\sqrt\Delta)\big)^n$ has a finite limit for every $\gamma$ ($n\gamma^2\sigma^2\Delta/2$ and $n(2p_n-1)\gamma\sigma\sqrt\Delta$ are bounded). With $\gamma=2$ this gives uniform integrability of $S_T$, hence of any payoff of linear growth, so convergence in law implies convergence of expectations.
++5. For the call, $e^{-rT}E[(S_0e^{(r+m-\sigma^2/2)T+\sigma\sqrt TZ}-K)^+]=\mathrm{BS}_C(S_0e^{mT},K)$ (the Black-Scholes formula with forward $S_0e^{(r+m)T}$). $\square$
++
++With $C(S)=\mathrm{BS}_C(S,K)$, $P(S)=\mathrm{BS}_P(S,K)$, Lemma 2 gives (Theorem 1 with $m\in\{0,\pm\theta,2\theta\}$):
++
++| | call bid | call ask | put bid | put ask |
++|---|---|---|---|---|
++| `thesis` | $C(S)$ | $C(Se^{2\theta T})$ | $P(Se^{2\theta T})$ | $P(S)$ |
++| `symmetric` | $C(Se^{-\theta T})$ | $C(Se^{\theta T})$ | $P(Se^{\theta T})$ | $P(Se^{-\theta T})$ |
++
++**Corollary 1 (parity and the underlying).** (a) Call bid and put ask share one spot, so $C_{\rm bid}-P_{\rm ask}=Se^{m_b T}-Ke^{-rT}$ and $C_{\rm ask}-P_{\rm bid}=Se^{m_aT}-Ke^{-rT}$ ($m_b,m_a$ the spot shifts of the call). (b) The underlying is the $K=0$ call: its quote is $[Se^{m_bT},Se^{m_aT}]$ (symmetric: $[Se^{-\theta T},Se^{\theta T}]$).
++**Corollary 2 (spread bound).** For every strike, the call and put spreads are at most the underlying's spread.
++*Proof.* $\partial_S\mathrm{BS}_C=\Phi(d_1)\in(0,1)$ and $|\partial_S\mathrm{BS}_P|=\Phi(-d_1)\in(0,1)$, so $C(Se^{m_aT})-C(Se^{m_bT})\le S(e^{m_aT}-e^{m_bT})$, and likewise for puts. $\square$
++
++## 4. General payoffs
++
++**Theorem 2.** Let $m_c$ be the central drift offset of the table in Sec. 0. With $\tau=T-t$ and $x=\ln S$, the limit of the recursions solves
++$$v_\tau=\tfrac12\sigma^2v_{xx}+\big(r+m_c-\tfrac12\sigma^2\big)v_x\pm\theta|v_x|-rv,\qquad v(0,x)=\varphi(e^x),$$
++with $+$ for the ask and $-$ for the bid; equivalently, the ask is $\sup_{|\vartheta_s|\le\theta}E[e^{-rT}\varphi(S_T^\vartheta)]$ with $dS=(r+m_c+\vartheta_s)S\,ds+\sigma S\,dW$ (bid: $\inf$). The drift lies in the band $[r+m_c-\theta,\,r+m_c+\theta]$.
++
++*Proved here.* (1) **Consistency.** By Lemma 1, one step is $R_n^{-1}[\pi f(Su)+(1-\pi)f(Sd)\pm\frac{\varepsilon}2|f(Su)-f(Sd)|]$ with $\pi=q_n+m_c\sqrt\Delta/(2\sigma)$. Taylor: $E_{q_n}f(S_1)=f+\Delta[rSf_S+\frac12\sigma^2S^2f_{SS}]+o(\Delta)$; the $\pi-q_n$ term adds $m_c\Delta Sf_S$; and $\frac\varepsilon2|f(Su)-f(Sd)|=\frac{\theta\sqrt\Delta}{2\sigma}\cdot2\sigma\sqrt\Delta\,S|f_S|+o(\Delta)=\theta\Delta S|f_S|+o(\Delta)$. Discounting subtracts $r\Delta f$. (2) **Monotonicity.** The weights on $Y_u,Y_d$ are $\pi\pm\varepsilon/2\ge0$ (e.g. $b_u+\varepsilon\mathbf 1\{Y_u\ge Y_d\}$), which are non-negative once $n$ is large. (3) **Stability.** The moment bound of step 4 of Theorem 1, applied to the extreme drifts, gives $|V_n(t,S)|\le C(1+S)$ uniformly. (4) **Reduction.** For monotone $\varphi$, $v_x$ has a fixed sign, $|v_x|=\pm v_x$, the PDE is linear, and its solution is Theorem 1.
++*Cited, not re-proved.* Strong comparison for this Hamiltonian ($H(p)=\theta|p|$ is Lipschitz; Crandall-Ishii-Lions 1992) and the Barles-Souganidis (1991) theorem for monotone, stable, consistent schemes then give locally uniform convergence of the trees to the unique viscosity solution of polynomial growth. The control representation is the HJB/verification statement of Fleming-Soner; with $m_c=0$ it is the $\kappa$-ignorance of Chen-Epstein (2002, Econometrica 70(4)), $\kappa=\theta/\sigma$ (their theorems were not re-checked here). $\square$
++
++## 5. Numerical verification ($\sigma=\theta=0.3$, $T=0.08$, $S_0=300.11$, $r=\ln1.0555$)
++
++**Tree to closed form** (max abs error over calls and puts, $K\in\{270,300,330\}$, bid and ask):
++
++| $n$ | 20 | 50 | 100 | 250 | 500 | 1000 | 2000 | 4000 |
++|---|---|---|---|---|---|---|---|---|
++| thesis | 1.5e-1 | 9.5e-2 | 2.9e-2 | 1.2e-2 | 5.0e-3 | 2.2e-3 | 2.6e-3 | 3.1e-4 |
++| symmetric | 1.3e-1 | 5.7e-2 | 2.4e-2 | 8.5e-3 | 3.8e-3 | 1.5e-3 | 1.6e-3 | 1.7e-4 |
++
++The error decays roughly like $1/n$ with the usual strike-grid oscillation (visible at $n=2000$).
++
++**Straddle $|S-300|$ (non-monotone, no closed form), symmetric kind:** tree $n=4000$ gives bid 16.943, ask 24.216; an independent upwind PDE solver with Richardson extrapolation from $dx=0.002,0.001$ gives 16.943 and 24.217; classical Black-Scholes gives 20.296. Thesis kind: tree 17.892 / 26.130 versus PDE 17.892 / 26.131.
++
++## 6. Test on META quotes (2023-09-29 snapshot, 42 calls + 33 puts, expiry 2023-10-27)
++
++`results/continuous_market_test.csv`; strike-wise 4-fold cross-validation, price loss (thesis eq. 30), flat $\sigma$:
++
++| model | $\sigma$ | $\theta$ (per year) | in-sample RMSE | held-out RMSE | held-out model spread (market 0.202) |
++|---|---|---|---|---|---|
++| Black-Scholes ($\theta=0$) | 0.460 | 0 | 0.377 | 0.378 | 0 |
++| continuous, `thesis` | 0.460 | 0.005 | 0.374 | 0.375 | 0.035 |
++| continuous, `symmetric` | 0.460 | 0.018 | 0.356 | 0.357 | 0.117 |
++
++1. **Prices.** The closed form fits about as well as a flat-volatility model can; it is worse than the free-$d$ discrete fit (held-out RMSE 0.256, `docs/AMBIGUITY.md`) because $u=1/d$ removes the skew parameter and $\sigma$ is flat (no smile).
++2. **Spread shape is supported.** Regressing market spreads (64 quotes with bid $>0$) on $|\Delta|$ gives $R^2=0.62$; vega gives 0.55; adding vega to $|\Delta|$ and a constant adds nothing (0.67 either way). The two regressors are correlated, so this discriminates only weakly.
++3. **Spread level is rejected.** Corollary 2 says the slope on $|\Delta|$ should equal the underlying's spread (0.19 USD); the data give 1.03.
++   - $\theta$ fixed from the stock quote predicts a mean at-the-money spread of 0.093 against 0.500 in the market.
++   - $\theta$ fitted to the options alone (symmetric) implies an underlying spread of 1.03 against 0.19 observed (thesis kind: 0.27, but its fitted option spreads are only 0.035).
++   - 25 of 64 quotes (39%) have a spread above the underlying's spread, violating Corollary 2; the violations are the near-the-money quotes.
++4. A diagnostic additive floor ($\pm c/2$, $c\approx0.20$) lifts the mean model spread to 0.230 and the interval overlap to 0.59, but it is not a DS result and wider intervals overlap more trivially.
++
++**Reading.** A single DS belief about the underlying's drift produces option spreads inherited through delta, so it can reproduce the *shape* of option spreads but not an amplitude larger than the underlying's. Amplitudes above the underlying's spread need an ingredient not tied to the underlying (ambiguity about volatility, or an option-specific belief); neither is derived here.
++
++## 7. Caveats
++
++* One snapshot, one expiry; cross-validation by strike is not out-of-time validation.
++* The underlying's bid/ask (300.11 / 300.30) may not be time-aligned with the option quotes.
++* Flat $\sigma$: no smile. The mid error changes sign across moneyness (`docs/AMBIGUITY.md`).
++* Not shown: weak convergence of the path-space belief, continuous-time replication / self-financing analogue of thesis Prop. 4.4, and any arbitrage statement.
+diff --git a/results/ambiguity_comparison.csv b/results/ambiguity_comparison.csv
+new file mode 100644
+index 0000000..8869186
+--- /dev/null
++++ b/results/ambiguity_comparison.csv
+@@ -0,0 +1,17 @@
++model,loss,u,d,a,width,b_u,b_d,sample,rmse_price,mean_model_spread,mean_market_spread,inside,overlap,mid_in
++thesis_const,price,1.015658304760843,0.9462390198059567,0.0010801444375851978,inf,0.7775513954751,0.2213684600873148,in-sample,0.24862258077925306,0.06141847772440484,0.20240000000000005,0.28,0.4,0.36
++thesis_const,price,1.015658304760843,0.9462390198059567,0.0010801444375851978,inf,0.7775513954751,0.2213684600873148,held-out strikes,0.27779854034976126,0.06544478977001766,0.20240000000000002,0.25333333333333335,0.36,0.30666666666666664
++thesis_const,spread_w16,1.0156690769184873,0.9461303114226185,0.002080429611494366,inf,0.777778694908048,0.22014087548045766,in-sample,0.25604034890129457,0.11865483870802028,0.20240000000000005,0.17333333333333334,0.41333333333333333,0.3333333333333333
++thesis_const,spread_w16,1.0156690769184873,0.9461303114226185,0.002080429611494366,inf,0.777778694908048,0.22014087548045766,held-out strikes,0.2900823021189141,0.11295663879345932,0.20240000000000002,0.18666666666666668,0.36,0.28
++thesis_state,price,1.0156642140909717,0.9462210219020707,0.005652569254005723,0.013973096786395424,0.7775428820518903,0.216804548694104,in-sample,0.2464956594475841,0.059417200907933336,0.20240000000000005,0.29333333333333333,0.38666666666666666,0.36
++thesis_state,price,1.0156642140909717,0.9462210219020707,0.005652569254005723,0.013973096786395424,0.7775428820518903,0.216804548694104,held-out strikes,0.2751119608701406,0.06138552569333073,0.20240000000000002,0.21333333333333335,0.3466666666666667,0.29333333333333333
++thesis_state,spread_w16,1.015669088301587,0.9461325386088772,0.002112686327461251,0.4999999993856125,0.7777714500595211,0.22011586361301766,in-sample,0.25585616417754375,0.11806164373710977,0.20240000000000005,0.17333333333333334,0.41333333333333333,0.3333333333333333
++thesis_state,spread_w16,1.015669088301587,0.9461325386088772,0.002112686327461251,0.4999999993856125,0.7777714500595211,0.22011586361301766,held-out strikes,0.28864893245126705,0.11221011261564322,0.20240000000000002,0.2,0.36,0.26666666666666666
++sym_const,price,1.0156705658178555,0.946265695992038,0.00211979311791509,inf,0.7762686372870266,0.22161156959505834,in-sample,0.23222302312179272,0.12044804759402133,0.20240000000000005,0.21333333333333335,0.4533333333333333,0.36
++sym_const,price,1.0156705658178555,0.946265695992038,0.00211979311791509,inf,0.7762686372870266,0.22161156959505834,held-out strikes,0.2557112681484803,0.11490232073445004,0.20240000000000002,0.21333333333333335,0.41333333333333333,0.28
++sym_const,spread_w16,1.0156948339535739,0.9461769455729221,0.0021159708271856316,inf,0.7762834641237356,0.22160056504907877,in-sample,0.23261261033646086,0.12053213544469076,0.20240000000000005,0.24,0.44,0.3466666666666667
++sym_const,spread_w16,1.0156948339535739,0.9461769455729221,0.0021159708271856316,inf,0.7762834641237356,0.22160056504907877,held-out strikes,0.2584362530142934,0.11496369379542112,0.20240000000000002,0.22666666666666666,0.41333333333333333,0.28
++sym_state,price,1.0156705860652655,0.9462656314797202,0.0021521877699820823,0.4999999974399253,0.7762524201664823,0.22159539206353554,in-sample,0.23229841770937912,0.11981873744539283,0.20240000000000005,0.21333333333333335,0.4533333333333333,0.36
++sym_state,price,1.0156705860652655,0.9462656314797202,0.0021521877699820823,0.4999999974399253,0.7762524201664823,0.22159539206353554,held-out strikes,0.2557789653634636,0.11429467244980747,0.20240000000000002,0.21333333333333335,0.41333333333333333,0.28
++sym_state,spread_w16,1.0156946192334784,0.9461781382638019,0.0021487556837258646,0.4999999995147922,0.7762656525788645,0.22158559173740966,in-sample,0.2326773633620845,0.11991551460977988,0.20240000000000005,0.24,0.44,0.3466666666666667
++sym_state,spread_w16,1.0156946192334784,0.9461781382638019,0.0021487556837258646,0.4999999995147922,0.7762656525788645,0.22158559173740966,held-out strikes,0.2602263320190769,0.11422666397758936,0.20240000000000002,0.22666666666666666,0.41333333333333333,0.28
+diff --git a/results/continuous_market_test.csv b/results/continuous_market_test.csv
+new file mode 100644
+index 0000000..ebdd103
+--- /dev/null
++++ b/results/continuous_market_test.csv
+@@ -0,0 +1,5 @@
++model,sigma,theta,floor,in_rmse,in_spread,in_overlap,cv_rmse,cv_spread,cv_overlap,cv_mid_in
++BS (theta=0),0.4599080724345456,0.0,0.0,0.3767764135687936,0.0,0.30666666666666664,0.3775187561346123,0.0,0.29333333333333333,0.29333333333333333
++cont thesis,0.4596451441507224,0.005263531281975757,0.0,0.3740347286033124,0.035482669098426595,0.36,0.3747172936372259,0.0347616284220156,0.3333333333333333,0.32
++cont symmetric,0.4598884959538879,0.018229806393037902,0.0,0.35603514950390297,0.1228245753405533,0.41333333333333333,0.3571268956832331,0.11720678184426538,0.4,0.29333333333333333
++cont symmetric + floor,0.4598498331925123,0.0093003509348407,0.20113228920343462,0.35159907457556255,0.23016381706083702,0.5866666666666667,0.3527957263193856,0.23000404537955285,0.5866666666666667,0.3333333333333333
+diff --git a/results/spread_by_moneyness.csv b/results/spread_by_moneyness.csv
+new file mode 100644
+index 0000000..af18a76
+--- /dev/null
++++ b/results/spread_by_moneyness.csv
+@@ -0,0 +1,9 @@
++side,bucket,n,market_spread,model_spread,mean_mid_error
++call,0.80-0.95,1,0.65,0.5753,-0.2376
++call,0.95-1.05,6,0.4917,0.4191,0.1262
++call,1.05-1.20,9,0.2244,0.1445,-0.0045
++call,>1.20,26,0.0815,0.0052,-0.1394
++put,<0.80,18,0.1272,0.0089,-0.1976
++put,0.80-0.95,9,0.2167,0.1695,-0.2542
++put,0.95-1.05,5,0.51,0.442,0.1246
++put,1.05-1.20,1,0.65,0.6129,0.4132
+diff --git a/scripts/collect_snapshot.py b/scripts/collect_snapshot.py
+new file mode 100644
+index 0000000..077a4ce
+--- /dev/null
++++ b/scripts/collect_snapshot.py
+@@ -0,0 +1,30 @@
++"""Store today's option chains (free Yahoo data + FRED 1-month rate) under data/snapshots/.
++
++Not run in this repository's tests (needs network). Typical use, once per US trading day near the close::
++
++    pip install -e ".[fetch]"
++    python scripts/collect_snapshot.py META --max-dte 60
++
++Outside 15:30-15:59 New York time on weekdays the script refuses to run unless ``--force`` is given.
++"""
++import argparse
++
++from dsbidask.snapshots import DEFAULT_ROOT, collect
++
++
++def main():
++    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
++    ap.add_argument("tickers", nargs="+")
++    ap.add_argument("--outdir", default=str(DEFAULT_ROOT))
++    ap.add_argument("--min-dte", type=int, default=1)
++    ap.add_argument("--max-dte", type=int, default=60)
++    ap.add_argument("--force", action="store_true", help="ignore the market-hours window")
++    ap.add_argument("--overwrite", action="store_true")
++    a = ap.parse_args()
++    for t in a.tickers:
++        files = collect(t, a.outdir, min_dte=a.min_dte, max_dte=a.max_dte, force=a.force, overwrite=a.overwrite)
++        print(f"{t}: wrote {len(files)} file(s)")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/scripts/compare_ambiguity.py b/scripts/compare_ambiguity.py
+new file mode 100644
+index 0000000..ed9b7e6
+--- /dev/null
++++ b/scripts/compare_ambiguity.py
+@@ -0,0 +1,95 @@
++"""Compare ambiguity parametrisations on the META quotes, in-sample and on held-out strikes.
++
++Models: thesis (one-sided) vs symmetric, each with constant and state-dependent (Gaussian-in-log-moneyness) ambiguity.
++Losses: ``price`` (thesis eq. 30) and ``mid_spread`` with a large spread weight (reproduce the market spreads).
++
++Held-out protocol: 4 folds by strike position (calls and puts separately; the strike-0 stock quote is always in the
++training set). Each fold is fitted on 3/4 of the strikes and evaluated on the remaining 1/4; metrics are pooled.
++
++Run: ``python scripts/compare_ambiguity.py [--out results/ambiguity_comparison.csv] [--seeds 2] [--jobs 4]``
++"""
++from __future__ import annotations
++
++import argparse
++from dataclasses import replace
++from itertools import product
++from multiprocessing import Pool
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++from dsbidask import R_DEFAULT as R
++from dsbidask.ambiguity import Ambiguity, calibrate_ambiguity, interval_report, model_quotes
++from dsbidask.data import load_quotes
++
++MODELS = {"thesis_const": ("thesis", False), "thesis_state": ("thesis", True),
++          "sym_const": ("symmetric", False), "sym_state": ("symmetric", True)}
++MODES = {"price": dict(mode="price"), "spread_w16": dict(mode="mid_spread", spread_weight=16.0)}
++FOLDS = 4
++
++
++def subset(q, call_idx, put_idx):
++    return replace(q, K_call=q.K_call[call_idx], C_bid=q.C_bid[call_idx], C_ask=q.C_ask[call_idx],
++                   K_put=q.K_put[put_idx], P_bid=q.P_bid[put_idx], P_ask=q.P_ask[put_idx])
++
++
++def split(q, fold):
++    """Train/test index sets; test = every FOLDS-th strike (offset ``fold``); strike 0 (stock) is always train."""
++    ci, pi = np.arange(len(q.K_call)), np.arange(len(q.K_put))
++    c_test = (ci > 0) & (ci % FOLDS == fold)
++    p_test = pi % FOLDS == fold
++    return (subset(q, ci[~c_test], pi[~p_test]), subset(q, ci[c_test], pi[p_test]))
++
++
++def fit(job):
++    name, mode_name, fold, seeds = job
++    q = load_quotes()
++    kind, sd = MODELS[name]
++    train, test = (q, None) if fold < 0 else split(q, fold)
++    r = calibrate_ambiguity(train, kind, sd, seeds=tuple(range(seeds)), **MODES[mode_name])
++    amb = Ambiguity(r["a"], kind, r["width"] if sd else np.inf)
++    out = dict(name=name, mode=mode_name, fold=fold, params=r)
++    if test is not None:
++        cb, ca, pb, pa = model_quotes(r["u"], r["d"], amb, test)
++        out["held"] = (np.r_[cb, pb], np.r_[ca, pa], np.r_[test.C_bid, test.P_bid], np.r_[test.C_ask, test.P_ask])
++    else:
++        out["report"] = interval_report(r["u"], r["d"], amb, q)
++    return out
++
++
++def metrics(xb, xa, mb, ma):
++    mid = (xb + xa) / 2
++    return dict(rmse_price=float(np.sqrt(np.mean(np.r_[(xb - mb) ** 2, (xa - ma) ** 2]))),
++                mean_model_spread=float(np.mean(xa - xb)), mean_market_spread=float(np.mean(ma - mb)),
++                inside=float(np.mean((xb >= mb - 1e-9) & (xa <= ma + 1e-9))),
++                overlap=float(np.mean((xb <= ma) & (xa >= mb))), mid_in=float(np.mean((mid >= mb) & (mid <= ma))))
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--out", default="results/ambiguity_comparison.csv")
++    ap.add_argument("--seeds", type=int, default=2)
++    ap.add_argument("--jobs", type=int, default=4)
++    a = ap.parse_args()
++    jobs = [(n, m, f, a.seeds) for n, m in product(MODELS, MODES) for f in range(-1, FOLDS)]
++    with Pool(a.jobs) as pool:
++        res = pool.map(fit, jobs)
++    rows = []
++    for n, m in product(MODELS, MODES):
++        sel = [r for r in res if r["name"] == n and r["mode"] == m]
++        full = next(r for r in sel if r["fold"] < 0)
++        held = [r["held"] for r in sel if r["fold"] >= 0]
++        p = full["params"]
++        base = dict(model=n, loss=m, u=p["u"], d=p["d"], a=p["a"], width=p["width"], b_u=p["b_u"], b_d=p["b_d"])
++        rows.append(dict(**base, sample="in-sample", **full["report"]))
++        rows.append(dict(**base, sample="held-out strikes", **metrics(*[np.concatenate(x) for x in zip(*held)])))
++    df = pd.DataFrame(rows)
++    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
++    df.to_csv(a.out, index=False)
++    with pd.option_context("display.width", 200, "display.max_columns", 20, "display.float_format", "{:.3f}".format):
++        print(df.drop(columns=["u", "d", "b_u", "b_d"]).to_string(index=False))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/scripts/continuous_market_test.py b/scripts/continuous_market_test.py
+new file mode 100644
+index 0000000..98dcc6f
+--- /dev/null
++++ b/scripts/continuous_market_test.py
+@@ -0,0 +1,130 @@
++"""Test the continuous-time DS formulas (``dsbidask.continuous``) on the META quotes.
++
++Parts: [A] fit + strike-wise 4-fold CV, [B] underlying spread implied by the options, [C] option spread implied by the
++underlying, [D] the structural bound "option spread <= underlying spread", [E] what the market spread tracks.
++Writes ``results/continuous_market_test.csv`` (part A). Takes about 1 minute.
++"""
++from __future__ import annotations
++
++import argparse
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++from scipy.optimize import differential_evolution
++from scipy.stats import norm
++
++from compare_ambiguity import split
++from dsbidask.continuous import R_CONT as r, T_YEARS as T, _loss, calibrate_continuous, model_quotes, shift, stock_quote
++from dsbidask.data import load_quotes
++
++q = load_quotes()
++S_mid = (q.S0_bid + q.S0_ask) / 2
++stock_spread = q.S0_ask - q.S0_bid
++
++
++def arrays(qs, sigma, theta, kind, floor=0.0):
++    cb, ca, pb, pa = model_quotes(qs, sigma, theta, kind, floor=floor)
++    k = qs.K_call > 0
++    return np.r_[cb[k], pb], np.r_[ca[k], pa], np.r_[qs.C_bid[k], qs.P_bid], np.r_[qs.C_ask[k], qs.P_ask]
++
++
++def metrics(xb, xa, mb, ma):
++    mid = (xb + xa) / 2
++    return dict(rmse=float(np.sqrt(np.mean(np.r_[(xb - mb) ** 2, (xa - ma) ** 2]))), spread=float(np.mean(xa - xb)),
++                overlap=float(np.mean((xb <= ma) & (xa >= mb))), mid_in=float(np.mean((mid >= mb) & (mid <= ma))))
++
++
++def fit_bs(qs):
++    """Black-Scholes (theta = 0), flat sigma."""
++    f = lambda z: _loss([z[0], 0.0], "symmetric", qs, r, T, False, False)
++    return float(differential_evolution(f, [(0.05, 1.5)], seed=0, tol=1e-12, polish=True).x[0])
++
++
++def part_a(out):
++    models = [("BS (theta=0)", "symmetric", False, True), ("cont thesis", "thesis", False, False),
++              ("cont symmetric", "symmetric", False, False), ("cont symmetric + floor", "symmetric", True, False)]
++    rows = []
++    for name, kind, fl, bs in models:
++        def run(qs, seeds):
++            if bs:
++                return fit_bs(qs), 0.0, 0.0
++            c = calibrate_continuous(qs, kind, with_floor=fl, seeds=seeds)
++            return c["sigma"], c["theta"], c.get("floor", 0.0)
++        s, th, f0 = run(q, (0, 1, 2))
++        ins = metrics(*arrays(q, s, th, kind, f0))
++        held = [[], [], [], []]
++        for fold in range(4):
++            tr, te = split(q, fold)
++            sf, tf, ff = run(tr, (0, 1))
++            for i, a in enumerate(arrays(te, sf, tf, kind, ff)):
++                held[i].append(a)
++        cv = metrics(*[np.concatenate(h) for h in held])
++        rows.append(dict(model=name, sigma=s, theta=th, floor=f0, in_rmse=ins["rmse"], in_spread=ins["spread"],
++                         in_overlap=ins["overlap"], cv_rmse=cv["rmse"], cv_spread=cv["spread"], cv_overlap=cv["overlap"],
++                         cv_mid_in=cv["mid_in"]))
++    df = pd.DataFrame(rows)
++    Path(out).parent.mkdir(parents=True, exist_ok=True)
++    df.to_csv(out, index=False)
++    print(f"stock quote {q.S0_bid}/{q.S0_ask} (spread {stock_spread:.2f}), T = {T}, r = {r:.4f}")
++    print("[A] fit and strike-wise 4-fold CV (price loss includes the stock quote; metrics exclude it)")
++    print(df.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
++    mk = np.mean(np.r_[(q.C_ask - q.C_bid)[q.K_call > 0], q.P_ask - q.P_bid])
++    print(f"market mean spread = {mk:.3f}")
++    return df
++
++
++def part_bcd():
++    print("\n[B] underlying spread implied by the OPTIONS (stock quote dropped from the fit)")
++    for kind in ("thesis", "symmetric"):
++        c = calibrate_continuous(q, kind, drop_stock=True)
++        sb, sa = stock_quote(q.S0_bid, c["theta"], T, kind)
++        print(f"  {kind:9s}: sigma={c['sigma']:.3f} theta={c['theta']:.4f}/yr -> model stock {sb:.2f}/{sa:.2f} "
++              f"(spread {sa - sb:.2f}) vs observed {q.S0_bid:.2f}/{q.S0_ask:.2f} (spread {stock_spread:.2f})")
++
++    print("\n[C] option spread implied by the UNDERLYING (theta from the stock spread, sigma from option mids)")
++    for kind in ("thesis", "symmetric"):
++        mb, ma = shift(kind, "call")
++        th = np.log(q.S0_ask / q.S0_bid) / ((ma - mb) * T)
++        # sigma fitted on the option MIDS only (stock quote excluded)
++        def mid_loss(z):
++            cb, ca, pb, pa = model_quotes(q, z[0], th, kind)
++            k = q.K_call > 0
++            return float(np.sum(((cb + ca) / 2 - (q.C_bid + q.C_ask) / 2)[k] ** 2) + np.sum(((pb + pa) / 2 - (q.P_bid + q.P_ask) / 2) ** 2))
++        s = float(differential_evolution(mid_loss, [(0.05, 1.5)], seed=0, tol=1e-12, polish=True).x[0])
++        cb, ca, pb, pa = model_quotes(q, s, th, kind)
++        atm_c = (np.abs(q.K_call / S_mid - 1) < 0.05) & (q.K_call > 0); atm_p = np.abs(q.K_put / S_mid - 1) < 0.05
++        mk = np.r_[(q.C_ask - q.C_bid)[atm_c], (q.P_ask - q.P_bid)[atm_p]]; md = np.r_[(ca - cb)[atm_c], (pa - pb)[atm_p]]
++        print(f"  {kind:9s}: theta_stock={th:.4f}/yr sigma={s:.3f}: mean ATM spread model {md.mean():.3f} vs market {mk.mean():.3f} (n={len(mk)})")
++
++    print("\n[D] bound: option spread <= underlying spread (|delta| <= 1)")
++    cs = (q.C_ask - q.C_bid)[q.K_call > 0]; ps = q.P_ask - q.P_bid
++    ok_c = q.C_bid[q.K_call > 0] > 0; ok_p = q.P_bid > 0
++    sp = np.r_[cs[ok_c], ps[ok_p]]
++    print(f"  stock spread {stock_spread:.2f}; quotes with bid>0: {len(sp)}; spread > stock spread: {np.mean(sp > stock_spread):.0%} "
++          f"({int(np.sum(sp > stock_spread))}/{len(sp)}); median {np.median(sp):.2f}, max {sp.max():.2f}")
++    return sp, ok_c, ok_p
++
++
++def part_e(sp, ok_c, ok_p):
++    print("\n[E] what the market spread tracks (bid>0), sigma from the symmetric continuous fit")
++    s = calibrate_continuous(q, "symmetric")["sigma"]
++    def greeks(K, call):
++        d1 = (np.log(S_mid / K) + (r + s * s / 2) * T) / (s * np.sqrt(T))
++        return np.abs(norm.cdf(d1) - (0 if call else 1)), S_mid * norm.pdf(d1) * np.sqrt(T)
++    dc, vc = greeks(q.K_call[q.K_call > 0][ok_c], True); dp, vp = greeks(q.K_put[ok_p], False)
++    D, V, one = np.r_[dc, dp], np.r_[vc, vp], np.ones(len(sp))
++    for lab, X in (("|delta| only (model)", [D]), ("|delta| + const", [D, one]), ("vega only", [V]), ("vega + const", [V, one]),
++                   ("|delta| + vega + const", [D, V, one])):
++        X = np.column_stack(X); b, *_ = np.linalg.lstsq(X, sp, rcond=None)
++        print(f"  {lab:24s} R2={1 - (sp - X @ b).var() / sp.var():5.2f} coef={np.round(b, 4)}")
++    print(f"  (the model implies slope on |delta| = underlying spread {stock_spread:.2f})")
++
++
++if __name__ == "__main__":
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--out", default="results/continuous_market_test.csv")
++    a = ap.parse_args()
++    part_a(a.out)
++    sp, ok_c, ok_p = part_bcd()
++    part_e(sp, ok_c, ok_p)
+diff --git a/scripts/spread_by_moneyness.py b/scripts/spread_by_moneyness.py
+new file mode 100644
+index 0000000..9f64ec4
+--- /dev/null
++++ b/scripts/spread_by_moneyness.py
+@@ -0,0 +1,34 @@
++"""Model vs market spread by moneyness bucket, for the fitted symmetric constant-ambiguity model.
++
++Reads ``results/ambiguity_comparison.csv`` (made by ``scripts/compare_ambiguity.py``) and writes
++``results/spread_by_moneyness.csv``. Strike-0 (stock) quote excluded; moneyness = K / spot mid.
++"""
++import pandas as pd
++
++from dsbidask import R_DEFAULT as R
++from dsbidask.ambiguity import Ambiguity, model_quotes
++from dsbidask.data import load_quotes
++
++
++def main(src="results/ambiguity_comparison.csv", out="results/spread_by_moneyness.csv"):
++    r = pd.read_csv(src)
++    r = r[(r.model == "sym_const") & (r["loss"] == "price") & (r["sample"] == "in-sample")].iloc[0]
++    q = load_quotes()
++    spot = (q.S0_bid + q.S0_ask) / 2
++    cb, ca, pb, pa = model_quotes(r.u, r.d, Ambiguity(r.a, "symmetric"), q, R)
++    rows = []
++    for side, K, mb, ma, xb, xa in (("call", q.K_call, q.C_bid, q.C_ask, cb, ca), ("put", q.K_put, q.P_bid, q.P_ask, pb, pa)):
++        for k, b, a, x, y in zip(K, mb, ma, xb, xa):
++            if k > 0:
++                rows.append((side, k / spot, a - b, y - x, (x + y) / 2 - (a + b) / 2))
++    df = pd.DataFrame(rows, columns=["side", "moneyness", "market_spread", "model_spread", "mid_error"])
++    df["bucket"] = pd.cut(df.moneyness, [0, 0.8, 0.95, 1.05, 1.2, 10], labels=["<0.80", "0.80-0.95", "0.95-1.05", "1.05-1.20", ">1.20"])
++    g = df.groupby(["side", "bucket"], observed=True).agg(
++        n=("moneyness", "size"), market_spread=("market_spread", "mean"), model_spread=("model_spread", "mean"),
++        mean_mid_error=("mid_error", "mean")).round(4).reset_index()
++    g.to_csv(out, index=False)
++    print(g.to_string(index=False))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src/dsbidask/ambiguity.py b/src/dsbidask/ambiguity.py
+new file mode 100644
+index 0000000..5328a4a
+--- /dev/null
++++ b/src/dsbidask/ambiguity.py
+@@ -0,0 +1,186 @@
++"""Generalised ambiguity: symmetric and state-dependent lower masses (EXTENSION, not in the thesis).
++
++Thesis model (``kind="thesis"``)
++    ``b_u = q_u`` (the CRR up-probability, eq. 13) and ``b_d = q_d - a``; all ambiguity ``a = 1 - b_u - b_d``
++    is taken from the down mass. Consequence: the call *bid* and the put *ask* both equal the CRR price, so
++    ``C_bid - P_ask = S0 - K / R^T`` holds exactly and the model's spread sits one-sidedly above CRR.
++
++Symmetric model (``kind="symmetric"``)
++    ``b_u = q_u - a/2`` and ``b_d = q_d - a/2``: both lower masses are shrunk equally, so the belief set is
++    centred on the CRR measure. Same number of parameters as the thesis model.
++
++State-dependent ambiguity
++    ``a(n, S) = a * exp(-0.5 * (ln(S / S0) / width)^2)``: ambiguity is largest near the money and fades in the
++    wings (``width = inf`` gives a constant ``a``). Motivation: market spreads peak at the money.
++    This is a hypothesis to be tested, see ``scripts/compare_ambiguity.py`` and ``results/ambiguity_comparison.csv``.
++
++Pricing uses the general backward recursion of :mod:`dsbidask.choquet` with per-node weights, vectorised over
++strikes, so it also covers non-constant ``a`` where the closed forms of :mod:`dsbidask.pricing` do not apply.
++With a constant ``a`` and ``kind="thesis"`` it equals those closed forms (``tests/test_ambiguity.py``).
++"""
++from __future__ import annotations
++
++from dataclasses import dataclass
++from typing import Dict, Literal, Sequence, Tuple
++
++import numpy as np
++from numpy.typing import ArrayLike, NDArray
++from scipy.optimize import differential_evolution
++
++from .config import R_DEFAULT, T_DEFAULT
++from .data import Quotes
++from .pricing import b_up
++
++Kind = Literal["thesis", "symmetric"]
++Option = Literal["call", "put"]
++Mode = Literal["price", "mid_spread", "inv_spread"]
++
++
++def max_ambiguity(u: float, d: float, R: float, kind: Kind) -> float:
++    """Largest ``a`` keeping both lower masses non-negative (``b_u, b_d >= 0``, ``b_u + b_d = 1 - a``)."""
++    qu = b_up(u, d, R)
++    qd = 1.0 - qu
++    if kind == "thesis":
++        return qd
++    if kind == "symmetric":
++        return 2.0 * min(qu, qd)
++    raise ValueError(f"unknown kind {kind!r}")
++
++
++@dataclass(frozen=True)
++class Ambiguity:
++    """Ambiguity specification. ``a`` is the peak total ambiguity ``1 - b_u - b_d``."""
++
++    a: float
++    kind: Kind = "symmetric"
++    width: float = np.inf  # log-moneyness width of the Gaussian bump; inf = constant ambiguity
++
++    def a_grid(self, stock: NDArray[np.float64], S0: float) -> NDArray[np.float64]:
++        """Ambiguity at every node of the stock grid (NaN where the grid is NaN)."""
++        if not np.isfinite(self.width):
++            return np.where(np.isnan(stock), np.nan, self.a)
++        return self.a * np.exp(-0.5 * (np.log(stock / S0) / self.width) ** 2)
++
++    def masses(self, stock: NDArray[np.float64], S0: float, u: float, d: float, R: float):
++        """Per-node lower masses ``(b_u, b_d)`` on the stock grid; raises if infeasible."""
++        if self.a < 0 or self.a > max_ambiguity(u, d, R, self.kind) + 1e-12:
++            raise ValueError(f"a={self.a:.6f} outside [0, {max_ambiguity(u, d, R, self.kind):.6f}] for kind={self.kind!r}")
++        qu = b_up(u, d, R)
++        a = self.a_grid(stock, S0)
++        if self.kind == "thesis":
++            return np.full_like(a, qu), (1.0 - qu) - a
++        return qu - a / 2.0, (1.0 - qu) - a / 2.0
++
++
++def stock_grid(S0: float, u: float, d: float, T: int) -> NDArray[np.float64]:
++    """Recombining grid, entry ``[n, j]`` = ``S0 u^j d^(n-j)`` (NaN for ``j > n``)."""
++    g = np.full((T + 1, T + 1), np.nan)
++    for n in range(T + 1):
++        j = np.arange(n + 1)
++        g[n, : n + 1] = S0 * u**j * d ** (n - j)
++    return g
++
++
++def chain_bid_ask(S0: float, K: ArrayLike, option: Option, u: float, d: float, R: float, T: int,
++                  amb: Ambiguity, american: bool = False) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
++    """Bid/ask of calls or puts at several strikes by backward recursion with per-node masses.
++
++    ``K = 0`` with ``option="call"`` prices the underlying itself (the thesis stores the stock as a strike-0 call).
++    Returns ``(bid, ask)`` arrays of the length of ``K``.
++    """
++    K = np.atleast_1d(np.asarray(K, float))
++    stock = stock_grid(S0, u, d, T)
++    bu, bd = amb.masses(stock, S0, u, d, R)
++    sign = 1.0 if option == "call" else -1.0
++    payoff = lambda s: np.maximum(sign * (s[None, :] - K[:, None]), 0.0)
++    bid = ask = payoff(stock[T, :])
++    for n in range(T - 1, -1, -1):
++        m = n + 1
++        w_u, w_d = bu[n, :m][None, :], bd[n, :m][None, :]
++        slack = 1.0 - w_u - w_d
++        b_up_, b_dn_ = bid[:, 1 : m + 1], bid[:, :m]
++        a_up_, a_dn_ = ask[:, 1 : m + 1], ask[:, :m]
++        nb = (w_u * b_up_ + w_d * b_dn_ + slack * np.minimum(b_up_, b_dn_)) / R
++        na = (w_u * a_up_ + w_d * a_dn_ + slack * np.maximum(a_up_, a_dn_)) / R
++        if american:
++            ex = payoff(stock[n, :m])
++            nb, na = np.maximum(nb, ex), np.maximum(na, ex)
++        bid, ask = nb, na
++    return bid[:, 0], ask[:, 0]
++
++
++def model_quotes(u: float, d: float, amb: Ambiguity, q: Quotes, R: float = R_DEFAULT, T: int = T_DEFAULT):
++    """Model ``(call_bid, call_ask, put_bid, put_ask)`` at the quoted strikes."""
++    cb, ca = chain_bid_ask(q.S0_bid, q.K_call, "call", u, d, R, T, amb)
++    pb, pa = chain_bid_ask(q.S0_bid, q.K_put, "put", u, d, R, T, amb)
++    return cb, ca, pb, pa
++
++
++def quote_loss(xb, xa, mb, ma, mode: Mode = "price", spread_weight: float = 0.25, spread_floor: float = 0.01) -> float:
++    """Same three losses as :func:`dsbidask.calibration.objective`, on arrays of model and market quotes."""
++    if mode == "price":
++        return float(np.sum((xb - mb) ** 2) + np.sum((xa - ma) ** 2))
++    if mode == "mid_spread":
++        return float(np.sum(((xb + xa) / 2 - (mb + ma) / 2) ** 2) + spread_weight * np.sum(((xa - xb) - (ma - mb)) ** 2))
++    if mode == "inv_spread":
++        w = 1.0 / np.maximum(ma - mb, spread_floor)
++        return float(np.sum(((xb - mb) * w) ** 2) + np.sum(((xa - ma) * w) ** 2))
++    raise ValueError(f"unknown mode {mode!r}")
++
++
++def loss(u: float, d: float, amb: Ambiguity, q: Quotes, R: float = R_DEFAULT, T: int = T_DEFAULT, **kw) -> float:
++    cb, ca, pb, pa = model_quotes(u, d, amb, q, R, T)
++    return quote_loss(np.r_[cb, pb], np.r_[ca, pa], np.r_[q.C_bid, q.P_bid], np.r_[q.C_ask, q.P_ask], **kw)
++
++
++def interval_report(u: float, d: float, amb: Ambiguity, q: Quotes, R: float = R_DEFAULT, T: int = T_DEFAULT
++                    ) -> Dict[str, float]:
++    """RMSE and interval diagnostics (strike-0 stock quote excluded).
++
++    ``inside``: model [bid, ask] inside the market [bid, ask]; ``overlap``: the two intervals intersect;
++    ``mid_in``: model mid lies in the market interval.
++    """
++    cb, ca, pb, pa = model_quotes(u, d, amb, q, R, T)
++    keep = np.r_[q.K_call > 0, np.ones(len(q.K_put), bool)]
++    xb, xa = np.r_[cb, pb][keep], np.r_[ca, pa][keep]
++    mb, ma = np.r_[q.C_bid, q.P_bid][keep], np.r_[q.C_ask, q.P_ask][keep]
++    mid = (xb + xa) / 2
++    return dict(
++        rmse_price=float(np.sqrt(np.mean(np.r_[(xb - mb) ** 2, (xa - ma) ** 2]))),
++        mean_model_spread=float(np.mean(xa - xb)), mean_market_spread=float(np.mean(ma - mb)),
++        inside=float(np.mean((xb >= mb - 1e-9) & (xa <= ma + 1e-9))),
++        overlap=float(np.mean((xb <= ma) & (xa >= mb))),
++        mid_in=float(np.mean((mid >= mb) & (mid <= ma))),
++    )
++
++
++def calibrate_ambiguity(q: Quotes, kind: Kind = "symmetric", state_dependent: bool = False, R: float = R_DEFAULT,
++                        T: int = T_DEFAULT, seeds: Sequence[int] = (0, 1, 2), u_max: float = 1.056,
++                        d_min: float = 0.90, eps: float = 1e-5, width_bounds: Tuple[float, float] = (0.01, 0.5),
++                        maxiter: int = 200, popsize: int = 15, **loss_kw) -> Dict[str, float]:
++    """Fit ``(u, d, f[, width])`` with differential evolution (best of several seeds).
++
++    ``f in [0, 1]`` scales the ambiguity: ``a = f * max_ambiguity(u, d, kind)``, so every point of the box is
++    feasible (``b_u, b_d >= 0`` and ``b_u + b_d <= 1``) and no penalty or constraint is needed.
++    Free ``d`` and wide ambiguity bounds: this is *not* the thesis box (``b_d in [0.3, 0.6]``).
++    """
++    def unpack(x):
++        u, d, f = x[0], x[1], x[2]
++        w = x[3] if state_dependent else np.inf
++        return u, d, Ambiguity(f * max_ambiguity(u, d, R, kind), kind, w)
++
++    def f_obj(x):
++        u, d, amb = unpack(x)
++        return loss(u, d, amb, q, R, T, **loss_kw)
++
++    bounds = [(R + eps, u_max), (d_min, R - eps), (0.0, 1.0)] + ([width_bounds] if state_dependent else [])
++    best = None
++    for s in seeds:
++        r = differential_evolution(f_obj, bounds, seed=s, maxiter=maxiter, popsize=popsize, tol=1e-10, polish=True)
++        if best is None or r.fun < best.fun:
++            best = r
++    u, d, amb = unpack(best.x)
++    qu = b_up(u, d, R)
++    bu, bd = (qu, 1 - qu - amb.a) if kind == "thesis" else (qu - amb.a / 2, 1 - qu - amb.a / 2)
++    return dict(kind=kind, state_dependent=state_dependent, u=float(u), d=float(d), a=float(amb.a),
++                width=float(amb.width), b_u=float(bu), b_d=float(bd), error=float(best.fun))
+diff --git a/src/dsbidask/continuous.py b/src/dsbidask/continuous.py
+new file mode 100644
+index 0000000..7f23bb2
+--- /dev/null
++++ b/src/dsbidask/continuous.py
+@@ -0,0 +1,163 @@
++"""Continuous-time limit: the DS geometric Brownian motion (diffusive scaling). EXTENSION, not in the thesis.
++
++Definition
++----------
++Take the DS-multiplicative random walk with ``n`` steps of length ``D = T/n``, ``u = exp(sigma sqrt(D))``, ``d = 1/u``,
++``R = exp(r D)`` and ambiguity ``eps_n = 1 - b_u - b_d = theta sqrt(D) / sigma`` (``theta >= 0``, per year). The
++**DS-GBM** is the limit ``n -> infinity`` of the recursions (19) and (21) of the thesis. Two parametrisations of the
++one-step masses are supported (``q`` is the CRR up-probability):
++
++* ``"thesis"``    : ``b_u = q``,           ``b_d = 1 - q - eps``  (central drift offset ``m_c = theta``)
++* ``"symmetric"`` : ``b_u = q - eps/2``,   ``b_d = 1 - q - eps/2`` (``m_c = 0``)
++
++Results (proofs in ``docs/CONTINUOUS_LIMIT.md``)
++------------------------------------------------
++* Only ``eps_n ~ theta sqrt(D)`` gives a non-degenerate limit (a larger ambiguity makes the ask diverge, a smaller one
++  gives Black-Scholes).
++* Monotone payoffs: the bid/ask are Black-Scholes prices at a *shifted spot* ``S exp(m T)`` (:func:`ds_gbm_bid_ask`).
++* Any payoff: the limit solves ``v_tau = s^2/2 v_xx + (r + m_c - s^2/2) v_x +/- theta |v_x| - r v`` (``x = ln S``,
++  ``+`` ask, ``-`` bid), solved numerically by :func:`pde_bid_ask`.
++
++Consequence tested in ``scripts/continuous_market_test.py``: every option spread is bounded by the underlying's spread.
++"""
++from __future__ import annotations
++
++from typing import Callable, Dict, Literal, Optional, Sequence, Tuple, Union
++
++import numpy as np
++from numpy.typing import ArrayLike, NDArray
++from scipy.optimize import differential_evolution
++from scipy.stats import norm
++
++from .config import R_ANNUAL, T_DEFAULT
++from .data import Quotes
++
++Kind = Literal["thesis", "symmetric"]
++Option = Literal["call", "put"]
++Payoff = Callable[[NDArray[np.float64]], NDArray[np.float64]]
++
++R_CONT: float = float(np.log(1.0 + R_ANNUAL))
++"""Continuously compounded annual rate matching ``R_DEFAULT`` (``R_DEFAULT ** 250 = exp(R_CONT)``)."""
++T_YEARS: float = T_DEFAULT / 250.0
++"""Default maturity in years (20 trading days, 250 per year)."""
++
++# Spot shift ``m`` in units of ``theta`` as (bid, ask): the price is Black-Scholes at spot ``S exp(m * theta * T)``.
++_SHIFT = {("thesis", "call"): (0.0, 2.0), ("thesis", "put"): (2.0, 0.0),
++          ("symmetric", "call"): (-1.0, 1.0), ("symmetric", "put"): (1.0, -1.0)}
++
++
++def _out(x: NDArray, scalar: bool):
++    return float(x[0]) if scalar else x
++
++
++def bs_call(S: ArrayLike, K: ArrayLike, r: float, sigma: float, T: float):
++    """Black-Scholes call (no dividends). ``K = 0`` returns ``S`` (the underlying as a strike-0 call)."""
++    scalar = np.ndim(S) == 0 and np.ndim(K) == 0
++    S, K = np.broadcast_arrays(np.atleast_1d(np.asarray(S, float)), np.atleast_1d(np.asarray(K, float)))
++    out = S.astype(float).copy()
++    k = K > 0
++    d1 = (np.log(S[k] / K[k]) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
++    out[k] = S[k] * norm.cdf(d1) - K[k] * np.exp(-r * T) * norm.cdf(d1 - sigma * np.sqrt(T))
++    return _out(out, scalar)
++
++
++def bs_put(S: ArrayLike, K: ArrayLike, r: float, sigma: float, T: float):
++    """Black-Scholes put via parity."""
++    scalar = np.ndim(S) == 0 and np.ndim(K) == 0
++    c = np.atleast_1d(bs_call(S, K, r, sigma, T))
++    S_, K_ = np.broadcast_arrays(np.atleast_1d(np.asarray(S, float)), np.atleast_1d(np.asarray(K, float)))
++    return _out(c - S_ + K_ * np.exp(-r * T), scalar)
++
++
++def shift(kind: Kind, option: Option) -> Tuple[float, float]:
++    """``(m_bid, m_ask)`` in units of ``theta`` (see module doc)."""
++    return _SHIFT[(kind, option)]
++
++
++def ds_gbm_bid_ask(S0: ArrayLike, K: ArrayLike, option: Option, sigma: float, theta: float, T: float = T_YEARS,
++                   r: float = R_CONT, kind: Kind = "symmetric"):
++    """Closed-form DS-GBM ``(bid, ask)`` of a European call or put (Theorem 1 of ``docs/CONTINUOUS_LIMIT.md``).
++
++    ``theta = 0`` gives ``bid = ask = `` Black-Scholes. ``K = 0`` with ``option="call"`` is the underlying's own quote
++    ``(S exp(m_bid theta T), S exp(m_ask theta T))``.
++    """
++    mb, ma = shift(kind, option)
++    f = bs_call if option == "call" else bs_put
++    S0 = np.asarray(S0, float)
++    return (f(S0 * np.exp(mb * theta * T), K, r, sigma, T), f(S0 * np.exp(ma * theta * T), K, r, sigma, T))
++
++
++def stock_quote(S0: float, theta: float, T: float = T_YEARS, kind: Kind = "symmetric") -> Tuple[float, float]:
++    """Model bid/ask of the underlying itself (a strike-0 call)."""
++    b, a = ds_gbm_bid_ask(S0, 0.0, "call", 0.3, theta, T, R_CONT, kind)
++    return float(b), float(a)
++
++
++def model_quotes(q: Quotes, sigma: float, theta: float, kind: Kind = "symmetric", r: float = R_CONT,
++                 T: float = T_YEARS, floor: float = 0.0):
++    """Model ``(call_bid, call_ask, put_bid, put_ask)`` at the quoted strikes, rooted at ``q.S0_bid`` as in the tree code.
++
++    ``floor`` adds an additive ``+/- floor/2`` (bid clipped at 0): a *diagnostic* friction term, not part of the DS limit.
++    """
++    cb, ca = ds_gbm_bid_ask(q.S0_bid, q.K_call, "call", sigma, theta, T, r, kind)
++    pb, pa = ds_gbm_bid_ask(q.S0_bid, q.K_put, "put", sigma, theta, T, r, kind)
++    return (np.maximum(cb - floor / 2, 0.0), ca + floor / 2, np.maximum(pb - floor / 2, 0.0), pa + floor / 2)
++
++
++def pde_bid_ask(payoff: Payoff, S0: float, sigma: float, theta: float, T: float = T_YEARS, r: float = R_CONT,
++                kind: Kind = "symmetric", side: Literal["bid", "ask"] = "ask", dx: float = 0.002,
++                half: float = 0.9) -> float:
++    """Value of any payoff from the limit PDE (Theorem 2), by an explicit monotone upwind scheme in ``x = ln S``.
++
++    Each control ``s in {-1, +1}`` (drift ``r + m_c - sigma^2/2 + s theta``) is upwinded separately and the max (ask) or
++    min (bid) is taken, so the scheme is monotone, stable (``dt = 0.4 dx^2 / sigma^2``) and consistent. First-order
++    accurate in ``dx``; the domain is ``ln S0 +/- half`` with linear extrapolation at the boundary.
++    """
++    m_c = theta if kind == "thesis" else 0.0
++    drift0 = r + m_c - 0.5 * sigma**2
++    x0 = float(np.log(S0))
++    x = np.arange(x0 - half, x0 + half + dx / 2, dx)
++    i0 = int(round((x0 - x[0]) / dx))
++    v = np.asarray(payoff(np.exp(x)), float)
++    dt = 0.4 * dx**2 / sigma**2
++    ns = int(np.ceil(T / dt)); dt = T / ns
++    for _ in range(ns):
++        vxx = (v[2:] - 2 * v[1:-1] + v[:-2]) / dx**2
++        best = None
++        for s in (-1.0, 1.0):
++            b = drift0 + s * theta
++            term = b * ((v[2:] - v[1:-1]) / dx if b > 0 else (v[1:-1] - v[:-2]) / dx)
++            best = term if best is None else (np.maximum(best, term) if side == "ask" else np.minimum(best, term))
++        new = v.copy()
++        new[1:-1] = v[1:-1] + dt * (0.5 * sigma**2 * vxx + best - r * v[1:-1])
++        new[0] = 2 * new[1] - new[2]; new[-1] = 2 * new[-2] - new[-3]
++        v = new
++    return float(v[i0])
++
++
++def _loss(x, kind, q, r, T, with_floor, drop_stock):
++    cb, ca, pb, pa = model_quotes(q, x[0], x[1], kind, r, T, x[2] if with_floor else 0.0)
++    keep = (q.K_call > 0) if drop_stock else np.ones(len(q.K_call), bool)
++    return float(np.sum(((cb - q.C_bid) ** 2 + (ca - q.C_ask) ** 2)[keep]) + np.sum((pb - q.P_bid) ** 2 + (pa - q.P_ask) ** 2))
++
++
++def calibrate_continuous(q: Quotes, kind: Kind = "symmetric", r: float = R_CONT, T: float = T_YEARS,
++                         with_floor: bool = False, drop_stock: bool = False, seeds: Sequence[int] = (0, 1, 2),
++                         sigma_bounds: Tuple[float, float] = (0.05, 1.5), theta_bounds: Tuple[float, float] = (0.0, 3.0),
++                         floor_max: float = 0.6, maxiter: int = 400) -> Dict[str, float]:
++    """Fit ``(sigma, theta[, floor])`` to the thesis price loss (eq. 30) with differential evolution (best of ``seeds``).
++
++    ``drop_stock`` removes the strike-0 underlying quote from the loss, to test what the *options alone* imply for the
++    underlying's spread. Flat ``sigma`` means no smile: see ``docs/CONTINUOUS_LIMIT.md`` for what that costs.
++    """
++    bounds = [sigma_bounds, theta_bounds] + ([(0.0, floor_max)] if with_floor else [])
++    best = None
++    for s in seeds:
++        res = differential_evolution(_loss, bounds, args=(kind, q, r, T, with_floor, drop_stock), seed=s, tol=1e-12,
++                                     maxiter=maxiter, popsize=25, polish=True)
++        if best is None or res.fun < best.fun:
++            best = res
++    out = dict(kind=kind, sigma=float(best.x[0]), theta=float(best.x[1]), error=float(best.fun))
++    if with_floor:
++        out["floor"] = float(best.x[2])
++    return out
+diff --git a/src/dsbidask/fetch.py b/src/dsbidask/fetch.py
+index 9af9cae..4a3e598 100644
+--- a/src/dsbidask/fetch.py
++++ b/src/dsbidask/fetch.py
+@@ -21,6 +21,12 @@ KEEP = ["contractSymbol", "lastTradeDate", "strike", "lastPrice", "bid", "ask",
+         "contractSize", "currency"]
+ 
+ 
++def list_expiries(ticker: str) -> Tuple[str, ...]:
++    """All listed expiry dates (YYYY-MM-DD) of a ticker from Yahoo Finance."""
++    import yfinance as yf
++    return tuple(yf.Ticker(ticker).options)
++
++
+ def fetch_yahoo_chain(ticker: str, expiry: str) -> Tuple[pd.DataFrame, pd.DataFrame, Optional[float], Optional[float]]:
+     """Return ``(calls, puts, spot_bid, spot_ask)`` for one expiry (YYYY-MM-DD) from Yahoo Finance."""
+     import yfinance as yf
+diff --git a/src/dsbidask/snapshots.py b/src/dsbidask/snapshots.py
+new file mode 100644
+index 0000000..ccf4575
+--- /dev/null
++++ b/src/dsbidask/snapshots.py
+@@ -0,0 +1,97 @@
++"""Daily option-chain snapshot store: the data layer for a backtest (EXTENSION, not in the thesis).
++
++Free sources only give the *current* chain, so a history has to be collected forward in time.
++:func:`collect` writes one gzipped CSV per ``(date, ticker, expiry)`` and :func:`load_snapshots` reads them back.
++
++Layout::
++
++    data/snapshots/<TICKER>/<YYYY-MM-DD>/<expiry>.csv.gz     # calls and puts stacked, column ``side`` in {C, P}
++
++Every row carries the snapshot time (``asof``, UTC), the underlying bid/ask (``spot_bid``/``spot_ask``) and the
++risk-free rate (``rate``, annual decimal) observed at that time, so that every later calibration is point-in-time.
++
++Network access happens only through the injected callables (defaults in :mod:`dsbidask.fetch`), which makes the
++logic testable offline (``tests/test_snapshots.py``).
++"""
++from __future__ import annotations
++
++from datetime import date, datetime, timezone
++from pathlib import Path
++from typing import Callable, List, Optional, Sequence, Union
++from zoneinfo import ZoneInfo
++
++import pandas as pd
++
++from . import fetch
++
++PathLike = Union[str, Path]
++NY = ZoneInfo("America/New_York")
++DEFAULT_ROOT = Path("data/snapshots")
++
++
++def in_us_option_window(now: Optional[datetime] = None, start: str = "15:30", end: str = "15:59") -> bool:
++    """True on a weekday between ``start`` and ``end`` New York time (default: the last half hour before the close).
++
++    Quotes taken after the close are often stale or zero (Yahoo), so the collector refuses to run outside the window
++    unless forced. US market holidays are *not* detected: a snapshot on a holiday should be dropped in cleaning.
++    """
++    now = (now or datetime.now(timezone.utc)).astimezone(NY)
++    if now.weekday() >= 5:
++        return False
++    hm = now.strftime("%H:%M")
++    return start <= hm <= end
++
++
++def collect(ticker: str, outdir: PathLike = DEFAULT_ROOT, *, now: Optional[datetime] = None, min_dte: int = 1,
++            max_dte: int = 60, force: bool = False, overwrite: bool = False,
++            list_expiries: Callable[[str], Sequence[str]] = fetch.list_expiries,
++            fetch_chain: Callable = fetch.fetch_yahoo_chain,
++            rate_fn: Callable[[], float] = fetch.fetch_risk_free_rate) -> List[Path]:
++    """Fetch every expiry with ``min_dte <= days to expiry <= max_dte`` and store it. Returns the files written.
++
++    Skips a ``(day, expiry)`` already stored unless ``overwrite``. Raises if called outside
++    :func:`in_us_option_window` without ``force``.
++    """
++    now = now or datetime.now(timezone.utc)
++    if not force and not in_us_option_window(now):
++        raise RuntimeError("outside the US option snapshot window (15:30-15:59 New York, weekdays); use force=True")
++    day = now.astimezone(NY).date()
++    rate = float(rate_fn())
++    folder = Path(outdir) / ticker.upper() / day.isoformat()
++    folder.mkdir(parents=True, exist_ok=True)
++    written: List[Path] = []
++    for expiry in list_expiries(ticker):
++        dte = (date.fromisoformat(expiry) - day).days
++        if not (min_dte <= dte <= max_dte):
++            continue
++        path = folder / f"{expiry}.csv.gz"
++        if path.exists() and not overwrite:
++            continue
++        calls, puts, s_bid, s_ask = fetch_chain(ticker, expiry)
++        df = pd.concat([calls.assign(side="C"), puts.assign(side="P")], ignore_index=True)
++        df.insert(0, "asof", now.astimezone(timezone.utc).isoformat(timespec="seconds"))
++        df.insert(1, "expiry", expiry)
++        df["spot_bid"], df["spot_ask"], df["rate"] = s_bid, s_ask, rate
++        df.to_csv(path, index=False, compression="gzip")
++        written.append(path)
++    return written
++
++
++def load_snapshots(root: PathLike = DEFAULT_ROOT, ticker: str = "", start: Optional[str] = None,
++                   end: Optional[str] = None) -> pd.DataFrame:
++    """Read stored snapshots of one ticker into one frame with a ``snapshot_date`` column (date), sorted.
++
++    ``start``/``end`` are inclusive ISO dates. Returns an empty frame if nothing is stored.
++    """
++    base = Path(root) / ticker.upper()
++    frames = []
++    for folder in sorted(p for p in base.glob("*") if p.is_dir()):
++        if (start and folder.name < start) or (end and folder.name > end):
++            continue
++        for f in sorted(folder.glob("*.csv.gz")):
++            frames.append(pd.read_csv(f).assign(snapshot_date=folder.name))
++    if not frames:
++        return pd.DataFrame()
++    df = pd.concat(frames, ignore_index=True)
++    df["snapshot_date"] = pd.to_datetime(df["snapshot_date"]).dt.date
++    return df.sort_values(["snapshot_date", "expiry", "side", "strike"]).reset_index(drop=True)
+diff --git a/tests/test_ambiguity.py b/tests/test_ambiguity.py
+new file mode 100644
+index 0000000..45f636a
+--- /dev/null
++++ b/tests/test_ambiguity.py
+@@ -0,0 +1,104 @@
++import numpy as np
++import pytest
++
++from dsbidask import R_DEFAULT as R, american_put_bid_ask, b_up, crr_price, european_calls_bid_ask, european_puts_bid_ask
++from dsbidask.ambiguity import (Ambiguity, calibrate_ambiguity, chain_bid_ask, interval_report, loss, max_ambiguity,
++                                model_quotes)
++from dsbidask.data import load_quotes
++
++U, D, BD, S0, T = 1.02354592, 0.96425885, 0.39260853, 300.11, 20
++K = np.array([250.0, 290.0, 300.0, 310.0, 350.0])
++QU = b_up(U, D, R)
++
++
++def test_thesis_kind_constant_a_equals_closed_forms():
++    amb = Ambiguity(a=1 - QU - BD, kind="thesis")
++    cb, ca = chain_bid_ask(S0, K, "call", U, D, R, T, amb)
++    pb, pa = chain_bid_ask(S0, K, "put", U, D, R, T, amb)
++    ecb, eca = european_calls_bid_ask(S0, K, U, D, BD, R, T)
++    epb, epa = european_puts_bid_ask(S0, K, U, D, BD, R, T)
++    for x, y in ((cb, ecb), (ca, eca), (pb, epb), (pa, epa)):
++        assert np.allclose(x, y, atol=1e-9)
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++def test_zero_ambiguity_is_crr_with_zero_spread(kind):
++    amb = Ambiguity(a=0.0, kind=kind)
++    for opt, sign in (("call", 1), ("put", -1)):
++        bid, ask = chain_bid_ask(S0, K, opt, U, D, R, T, amb)
++        ref = [crr_price(lambda s, k=k: np.maximum(sign * (s - k), 0), S0, U, D, R, T) for k in K]
++        assert np.allclose(bid, ref, atol=1e-9) and np.allclose(ask, ref, atol=1e-9)
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++@pytest.mark.parametrize("width", [np.inf, 0.05, 0.2])
++def test_bid_not_above_ask_and_prices_nonnegative(kind, width):
++    amb = Ambiguity(a=0.5 * max_ambiguity(U, D, R, kind), kind=kind, width=width)
++    for opt in ("call", "put"):
++        bid, ask = chain_bid_ask(S0, K, opt, U, D, R, T, amb)
++        assert (bid <= ask + 1e-12).all() and (bid >= -1e-12).all()
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++def test_state_dependent_belief_sets_are_nested_in_constant_ones(kind):
++    """Less ambiguity at some nodes (same peak a) can only narrow [bid, ask]."""
++    a = 0.5 * max_ambiguity(U, D, R, kind)
++    const, bump = Ambiguity(a, kind), Ambiguity(a, kind, width=0.1)
++    for opt in ("call", "put"):
++        b0, a0 = chain_bid_ask(S0, K, opt, U, D, R, T, const)
++        b1, a1 = chain_bid_ask(S0, K, opt, U, D, R, T, bump)
++        assert (b1 >= b0 - 1e-12).all() and (a1 <= a0 + 1e-12).all()
++
++
++def test_huge_width_equals_constant():
++    a = 0.3 * max_ambiguity(U, D, R, "symmetric")
++    x = chain_bid_ask(S0, K, "call", U, D, R, T, Ambiguity(a, "symmetric", width=1e6))
++    y = chain_bid_ask(S0, K, "call", U, D, R, T, Ambiguity(a, "symmetric"))
++    assert np.allclose(x, y, atol=1e-9)
++
++
++def test_infeasible_ambiguity_raises():
++    with pytest.raises(ValueError):
++        chain_bid_ask(S0, K, "call", U, D, R, T, Ambiguity(a=max_ambiguity(U, D, R, "symmetric") + 0.01, kind="symmetric"))
++    with pytest.raises(ValueError):
++        chain_bid_ask(S0, K, "call", U, D, R, T, Ambiguity(a=-0.01, kind="thesis"))
++
++
++def test_american_put_matches_existing_recursion_for_thesis_kind():
++    amb = Ambiguity(a=1 - QU - BD, kind="thesis")
++    for k in (250.0, 300.0, 350.0):
++        bid, ask = chain_bid_ask(S0, k, "put", U, D, R, T, amb, american=True)
++        eb, ea = american_put_bid_ask(S0, k, U, D, BD, R, T)
++        assert abs(bid[0] - eb) < 1e-9 and abs(ask[0] - ea) < 1e-9
++
++
++def test_symmetric_forward_interval_is_centred_at_one_step():
++    """T = 1: (C_bid - P_ask) + (C_ask - P_bid) = 2 (S0 - K/R) for the symmetric kind, but not for the thesis kind."""
++    k = np.array([300.0])  # strictly between S0*d and S0*u
++    centred = {}
++    for kind in ("symmetric", "thesis"):
++        amb = Ambiguity(a=0.5 * max_ambiguity(U, D, R, kind), kind=kind)
++        cb, ca = chain_bid_ask(S0, k, "call", U, D, R, 1, amb)
++        pb, pa = chain_bid_ask(S0, k, "put", U, D, R, 1, amb)
++        centred[kind] = float((cb - pa + ca - pb)[0] - 2 * (S0 - k[0] / R))
++    assert abs(centred["symmetric"]) < 1e-9 and abs(centred["thesis"]) > 1e-3
++
++
++def test_model_quotes_and_report_shapes():
++    q = load_quotes()
++    amb = Ambiguity(a=0.5 * max_ambiguity(U, D, R, "symmetric"), kind="symmetric")
++    cb, ca, pb, pa = model_quotes(U, D, amb, q)
++    assert len(cb) == len(q.K_call) and len(pa) == len(q.K_put)
++    rep = interval_report(U, D, amb, q)
++    assert set(rep) == {"rmse_price", "mean_model_spread", "mean_market_spread", "inside", "overlap", "mid_in"}
++    assert np.isfinite(loss(U, D, amb, q)) and np.isfinite(loss(U, D, amb, q, mode="mid_spread", spread_weight=4.0))
++
++
++def test_calibration_result_is_feasible_and_self_consistent():
++    q = load_quotes()
++    r = calibrate_ambiguity(q, "symmetric", state_dependent=True, seeds=(0,), maxiter=40, popsize=8)
++    assert 0 <= r["a"] <= max_ambiguity(r["u"], r["d"], R, "symmetric") + 1e-12
++    assert r["b_u"] >= -1e-12 and r["b_d"] >= -1e-12 and r["b_u"] + r["b_d"] <= 1 + 1e-12
++    assert 0.01 <= r["width"] <= 0.5
++    amb = Ambiguity(r["a"], "symmetric", r["width"])
++    assert abs(r["error"] - loss(r["u"], r["d"], amb, q)) < 1e-9
+diff --git a/tests/test_continuous.py b/tests/test_continuous.py
+new file mode 100644
+index 0000000..b4b3fab
+--- /dev/null
++++ b/tests/test_continuous.py
+@@ -0,0 +1,107 @@
++import numpy as np
++import pytest
++
++from dsbidask.ambiguity import Ambiguity, chain_bid_ask
++from dsbidask.continuous import (R_CONT, bs_call, bs_put, calibrate_continuous, ds_gbm_bid_ask, model_quotes,
++                                 pde_bid_ask, shift, stock_quote)
++from dsbidask.data import Quotes
++
++S0, SIG, TH, T, R = 300.11, 0.30, 0.30, 0.08, R_CONT
++KS = np.array([270.0, 300.0, 330.0])
++
++
++def tree(n, kind, payoff, S=S0):
++    """Scaled DS tree (u = e^{sigma sqrt(D)}, eps = theta sqrt(D)/sigma) for an arbitrary payoff, 1-D recursion."""
++    D = T / n; u = np.exp(SIG * np.sqrt(D)); d = 1 / u; Rn = np.exp(R * D); q = (Rn - d) / (u - d); eps = TH * np.sqrt(D) / SIG
++    bu, bd = (q, 1 - q - eps) if kind == "thesis" else (q - eps / 2, 1 - q - eps / 2)
++    sl = 1 - bu - bd
++    bid = ask = payoff(S * u ** (2 * np.arange(n + 1) - n))
++    for _ in range(n):
++        ub, db, ua, da = bid[1:], bid[:-1], ask[1:], ask[:-1]
++        bid = (bu * ub + bd * db + sl * np.minimum(ub, db)) / Rn
++        ask = (bu * ua + bd * da + sl * np.maximum(ua, da)) / Rn
++    return float(bid[0]), float(ask[0])
++
++
++def test_black_scholes_reference_value_and_parity():
++    assert abs(bs_call(100.0, 100.0, 0.05, 0.2, 1.0) - 10.4506) < 1e-3
++    c, p = bs_call(S0, KS, R, SIG, T), bs_put(S0, KS, R, SIG, T)
++    assert np.allclose(c - p, S0 - KS * np.exp(-R * T))
++    assert bs_call(S0, 0.0, R, SIG, T) == pytest.approx(S0)
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++@pytest.mark.parametrize("option", ["call", "put"])
++def test_zero_theta_is_black_scholes_with_zero_spread(kind, option):
++    b, a = ds_gbm_bid_ask(S0, KS, option, SIG, 0.0, T, R, kind)
++    ref = (bs_call if option == "call" else bs_put)(S0, KS, R, SIG, T)
++    assert np.allclose(b, ref) and np.allclose(a, ref)
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++@pytest.mark.parametrize("option", ["call", "put"])
++def test_closed_form_is_the_limit_of_the_scaled_tree(kind, option):
++    n = 1000
++    D = T / n; u = np.exp(SIG * np.sqrt(D)); eps = TH * np.sqrt(D) / SIG
++    b, a = chain_bid_ask(S0, KS, option, u, 1 / u, np.exp(R * D), n, Ambiguity(eps, kind))
++    cb, ca = ds_gbm_bid_ask(S0, KS, option, SIG, TH, T, R, kind)
++    assert np.max(np.abs(b - cb)) < 5e-3 and np.max(np.abs(a - ca)) < 5e-3
++
++
++def test_forward_interval_and_stock_quote():
++    for kind in ("thesis", "symmetric"):
++        mb, ma = shift(kind, "call")
++        for K in KS:
++            cb, ca = ds_gbm_bid_ask(S0, K, "call", SIG, TH, T, R, kind)
++            pb, pa = ds_gbm_bid_ask(S0, K, "put", SIG, TH, T, R, kind)
++            disc = K * np.exp(-R * T)
++            assert cb - pa == pytest.approx(S0 * np.exp(mb * TH * T) - disc, abs=1e-9)   # call bid / put ask share a spot
++            assert ca - pb == pytest.approx(S0 * np.exp(ma * TH * T) - disc, abs=1e-9)
++        sb, sa = stock_quote(S0, TH, T, kind)
++        assert (sb, sa) == pytest.approx((S0 * np.exp(mb * TH * T), S0 * np.exp(ma * TH * T)))
++    sb, sa = stock_quote(S0, TH, T, "symmetric")
++    assert sb == pytest.approx(S0 * np.exp(-TH * T)) and sa == pytest.approx(S0 * np.exp(TH * T))
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++def test_option_spread_never_exceeds_underlying_spread(kind):
++    sb, sa = stock_quote(S0, TH, T, kind)
++    K = np.linspace(1.0, 900.0, 400)
++    for option in ("call", "put"):
++        b, a = ds_gbm_bid_ask(S0, K, option, SIG, TH, T, R, kind)
++        assert (a - b >= -1e-12).all() and (a - b <= (sa - sb) + 1e-9).all()
++
++
++def test_spread_increases_with_theta():
++    s = [np.subtract(*ds_gbm_bid_ask(S0, 300.0, "call", SIG, th, T, R, "symmetric")[::-1]) for th in (0.0, 0.1, 0.3, 0.6)]
++    assert all(x < y for x, y in zip(s, s[1:]))
++
++
++@pytest.mark.parametrize("kind", ["thesis", "symmetric"])
++def test_pde_solver_matches_closed_form_for_a_call(kind):
++    pay = lambda s: np.maximum(s - 300.0, 0.0)
++    cb, ca = ds_gbm_bid_ask(S0, 300.0, "call", SIG, TH, T, R, kind)
++    for side, ref in (("bid", cb), ("ask", ca)):
++        coarse = abs(pde_bid_ask(pay, S0, SIG, TH, T, R, kind, side, dx=0.002) - ref)
++        fine = abs(pde_bid_ask(pay, S0, SIG, TH, T, R, kind, side, dx=0.001) - ref)
++        assert fine < 0.05 and fine < 0.7 * coarse        # first-order scheme: halving dx roughly halves the error
++
++
++def test_pde_solver_matches_tree_for_a_straddle():
++    pay = lambda s: np.abs(s - 300.0)
++    tb, ta = tree(2000, "symmetric", pay)
++    assert abs(pde_bid_ask(pay, S0, SIG, TH, T, R, "symmetric", "bid", dx=0.001) - tb) < 0.06
++    assert abs(pde_bid_ask(pay, S0, SIG, TH, T, R, "symmetric", "ask", dx=0.001) - ta) < 0.06
++    assert tb < bs_call(S0, 300.0, R, SIG, T) + bs_put(S0, 300.0, R, SIG, T) < ta
++
++
++def test_calibration_recovers_synthetic_parameters():
++    K = np.arange(250.0, 351.0, 10.0)
++    sb, sa = stock_quote(S0, 0.02, T, "symmetric")
++    cb, ca = ds_gbm_bid_ask(S0, K, "call", 0.4, 0.02, T, R, "symmetric")
++    pb, pa = ds_gbm_bid_ask(S0, K, "put", 0.4, 0.02, T, R, "symmetric")
++    q = Quotes(np.r_[0.0, K], np.r_[sb, cb], np.r_[sa, ca], K, pb, pa, S0_bid=S0, S0_ask=sa)
++    cb2, *_ = model_quotes(q, 0.4, 0.02, "symmetric")
++    assert np.allclose(cb2, np.r_[sb, cb])
++    r = calibrate_continuous(q, "symmetric", seeds=(0,), maxiter=200)
++    assert abs(r["sigma"] - 0.4) < 1e-3 and abs(r["theta"] - 0.02) < 1e-3 and r["error"] < 1e-6
+diff --git a/tests/test_snapshots.py b/tests/test_snapshots.py
+new file mode 100644
+index 0000000..88d3bed
+--- /dev/null
++++ b/tests/test_snapshots.py
+@@ -0,0 +1,61 @@
++from datetime import datetime, timezone
++
++import pandas as pd
++import pytest
++
++from dsbidask.snapshots import collect, in_us_option_window, load_snapshots
++
++# 2026-11-04 is a Wednesday; New York is on EST (UTC-5) -> 15:40 NY = 20:40 UTC
++IN_WINDOW = datetime(2026, 11, 4, 20, 40, tzinfo=timezone.utc)
++AFTER_CLOSE = datetime(2026, 11, 4, 22, 0, tzinfo=timezone.utc)
++SATURDAY = datetime(2026, 11, 7, 20, 40, tzinfo=timezone.utc)
++# summer: 15:40 NY = 19:40 UTC (EDT)
++IN_WINDOW_SUMMER = datetime(2026, 7, 15, 19, 40, tzinfo=timezone.utc)
++
++
++def _chain(expiry):
++    cols = ["contractSymbol", "strike", "bid", "ask", "lastPrice", "volume", "openInterest", "impliedVolatility"]
++    calls = pd.DataFrame([[f"C{expiry}", 300.0, 5.0, 5.2, 5.1, 10, 100, 0.3]], columns=cols)
++    puts = pd.DataFrame([[f"P{expiry}", 300.0, 4.0, 4.3, 4.1, 5, 50, 0.31]], columns=cols)
++    return calls, puts, 300.1, 300.3
++
++
++def _kw(tmp_path, **extra):
++    return dict(outdir=tmp_path, list_expiries=lambda t: ["2026-11-06", "2026-12-18", "2027-06-18", "2026-11-04"],
++                fetch_chain=lambda t, e: _chain(e), rate_fn=lambda: 0.045, **extra)
++
++
++def test_window_logic():
++    assert in_us_option_window(IN_WINDOW) and in_us_option_window(IN_WINDOW_SUMMER)
++    assert not in_us_option_window(AFTER_CLOSE) and not in_us_option_window(SATURDAY)
++
++
++def test_collect_refuses_outside_window_unless_forced(tmp_path):
++    with pytest.raises(RuntimeError):
++        collect("META", now=AFTER_CLOSE, **_kw(tmp_path))
++    assert len(collect("META", now=AFTER_CLOSE, force=True, **_kw(tmp_path))) == 2
++
++
++def test_collect_filters_by_dte_and_round_trips(tmp_path):
++    files = collect("META", now=IN_WINDOW, min_dte=1, max_dte=60, **_kw(tmp_path))
++    assert sorted(f.name for f in files) == ["2026-11-06.csv.gz", "2026-12-18.csv.gz"]  # same-day and +1y excluded
++    df = load_snapshots(tmp_path, "meta")
++    assert len(df) == 4 and set(df.side) == {"C", "P"}
++    assert df.snapshot_date.iloc[0].isoformat() == "2026-11-04"
++    assert (df.rate == 0.045).all() and (df.spot_bid == 300.1).all() and (df.spot_ask == 300.3).all()
++    assert df["asof"].iloc[0] == "2026-11-04T20:40:00+00:00"
++
++
++def test_collect_is_idempotent_and_overwrite_works(tmp_path):
++    assert len(collect("META", now=IN_WINDOW, **_kw(tmp_path))) == 2
++    assert collect("META", now=IN_WINDOW, **_kw(tmp_path)) == []
++    assert len(collect("META", now=IN_WINDOW, overwrite=True, **_kw(tmp_path))) == 2
++
++
++def test_load_snapshots_date_range_and_empty(tmp_path):
++    assert load_snapshots(tmp_path, "META").empty
++    collect("META", now=IN_WINDOW, **_kw(tmp_path))
++    nxt = datetime(2026, 11, 5, 20, 40, tzinfo=timezone.utc)
++    collect("META", now=nxt, **_kw(tmp_path))
++    assert load_snapshots(tmp_path, "META", start="2026-11-05").snapshot_date.nunique() == 1
++    assert load_snapshots(tmp_path, "META").snapshot_date.nunique() == 2

@@ -21,6 +21,12 @@ KEEP = ["contractSymbol", "lastTradeDate", "strike", "lastPrice", "bid", "ask", 
         "contractSize", "currency"]
 
 
+def list_expiries(ticker: str) -> Tuple[str, ...]:
+    """All listed expiry dates (YYYY-MM-DD) of a ticker from Yahoo Finance."""
+    import yfinance as yf
+    return tuple(yf.Ticker(ticker).options)
+
+
 def fetch_yahoo_chain(ticker: str, expiry: str) -> Tuple[pd.DataFrame, pd.DataFrame, Optional[float], Optional[float]]:
     """Return ``(calls, puts, spot_bid, spot_ask)`` for one expiry (YYYY-MM-DD) from Yahoo Finance."""
     import yfinance as yf
